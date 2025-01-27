@@ -1,0 +1,63 @@
+// Screen names as constants
+export const SCREEN_NAMES = {
+    HOME: 'HomeScreen',
+    // PROFILE: 'Profile',
+    STARTSCREEN: 'StartScreen',
+    // SETTINGS: 'Settings',
+    LOGIN: 'LoginScreen',
+    REGISTER: 'RegisterScreen',
+    FORGOT_PASSWORD: 'ResetPasswordScreen',
+    ABOUT_US: 'AboutUsScreen',
+    DASHBOARD: 'DashboardScreen',
+  };
+  
+  // Route configuration
+  export const ROUTES = {
+    // Auth Stack
+    AUTH: {
+      name: 'Auth',
+      screens: {
+        LOGIN: {
+          name: SCREEN_NAMES.LOGIN,
+          path: 'login',
+        },
+        REGISTER: {
+          name: SCREEN_NAMES.REGISTER,
+          path: 'register',
+        },
+        FORGOT_PASSWORD: {
+          name: SCREEN_NAMES.FORGOT_PASSWORD,
+          path: 'forgot-password',
+        },
+      },
+    },
+    // Main App Stack
+    APP: {
+      name: 'App',
+      screens: {
+        HOME: {
+          name: SCREEN_NAMES.HOME,
+          path: 'home',
+        },
+        PROFILE: {
+          name: SCREEN_NAMES.PROFILE,
+          path: 'profile/:id',
+        },
+        SETTINGS: {
+          name: SCREEN_NAMES.SETTINGS,
+          path: 'settings',
+        },
+      },
+    },
+  };
+  
+  // Helper function to generate full paths
+  export const getFullPath = (stackName, screenName) => {
+    const stack = ROUTES[stackName];
+    if (!stack) return null;
+  
+    const screen = stack.screens[screenName];
+    if (!screen) return null;
+  
+    return `${stack.name}/${screen.path}`;
+  };

@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Krystal",
+    "slug": "Exlogrn",
+    "version": "2.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/app.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "platforms": ["ios", "android", "web"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "plugins": [
+        [
+          "expo-build-properties",
+          {
+            "android": {
+              "repositories": [
+                "https://jitpack.io",
+                "https://maven.google.com",
+                "https://repo.maven.apache.org/maven2"
+              ]
+            }
+          }
+        ]
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAr9kfNHZVPuF9UelpQ-Vnu6F4jyCbuzYY"
+        }
+      },
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/app.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.ob_eduardo.Krystal"
+    },
+    "web": {
+      "favicon": "./assets/app.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "deda414b-ca80-4f41-b68c-2b830963c3d9"
+      }
+    }
+  }
+}
