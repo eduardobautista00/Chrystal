@@ -2,21 +2,28 @@ import { StyleSheet, Dimensions } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
+// Define breakpoints for responsiveness
+const isMobile = width < 768;
+const isTablet = width >= 768 && width < 1024;
+const isDesktop = width >= 1024;
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    padding: isMobile ? 10 : isTablet ? 20 : 30,  // More padding for larger screens
   },
   map: {
-    width: width * 1,   // 90% of screen width
-    height: height * 1.5, // 70% of screen height
+    width: isMobile ? width * 1 : isTablet ? width * 0.8 : width * 0.7,  // 100% for mobile, 80% for tablet, 70% for desktop
+    height: height * (isMobile ? 1.5 : isTablet ? 0.7 : 0.8),  // 150% for mobile, 70% for tablet, 80% for desktop
   },
   loadingContainer: {
-    flex: 1, // Take up the full screen
-    justifyContent: 'center', // Vertically center the indicator
-    alignItems: 'center', // Horizontally center the indicator
-    backgroundColor: 'rgba(0, 0, 0, 0.1)', // Optional: add a translucent background
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    padding: isMobile ? 15 : isTablet ? 25 : 35,  // Padding based on device size
   },
   customMapStyle: [
     {
@@ -68,16 +75,17 @@ const styles = StyleSheet.create({
   ],
   customButton: {
     position: 'absolute',
-    bottom: 220,
+    bottom: isMobile ? 220 : isTablet ? 200 : 250,  // Adjust button position for different screen sizes
     right: 20,
     backgroundColor: '#fff',
     borderRadius: 30,
-    padding: 10,
+    padding: isMobile ? 8 : isTablet ? 12 : 15,  // More padding for larger screens
     elevation: 5, // Adds shadow on Android
   },
   buttonText: {
     color: 'black',
     fontWeight: 'bold',
+    fontSize: isMobile ? 14 : isTablet ? 16 : 18,  // Adjust font size for different screen sizes
   },
 });
 

@@ -1,12 +1,16 @@
-import React, { useState, useLayoutEffect } from "react";
-import { TouchableOpacity, StyleSheet, View, Alert } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  TouchableOpacity,
+  StyleSheet,
+  View,
+  Alert,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage"; // Import AsyncStorage
 import { Text, Checkbox } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import axios from 'axios';
 
 import AnimatedBackground from "../../components/AnimatedBackground";
-import BackButton from "../../components/BackButton";
-import Logo from "../../components/Logo"; // Your image-based logo
+import Logo from "../../components/Logo";
 import Button from "../../components/Button";
 import TextInput from "../../components/TextInput";
 import { theme } from "../../core/theme";
@@ -15,12 +19,47 @@ import { emailValidator } from "../../utils/emailValidator";
 import { passwordValidator } from "../../utils/passwordValidator";
 
 export default function LoginScreen({ route, navigation }) {
-  const [email, setEmail] = useState({ value: "agent@example.com", error: "" });
+  const [email, setEmail] = useState({ value: "", error: "" });
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [password, setPassword] = useState({ value: "password123", error: "" });
+  const [password, setPassword] = useState({ value: "", error: "" });
   const [rememberMe, setRememberMe] = useState(false);
   const { authState } = useAuth();
   const { someParam } = route.params;
+
+  // Load saved credentials on initial render
+  useEffect(() => {
+    const loadSavedCredentials = async () => {
+      try {
+        const savedCredentials = await AsyncStorage.getItem("credentials");
+        if (savedCredentials) {
+          const { email, password } = JSON.parse(savedCredentials);
+          setEmail({ value: email, error: "" });
+          setPassword({ value: password, error: "" });
+          setRememberMe(true); // Set "Remember Me" as checked
+          console.log("Loaded credentials:", { email, password });
+        }
+      } catch (error) {
+        console.error("Failed to load credentials:", error.message);
+      }
+    };
+
+    loadSavedCredentials();
+  }, []);
+
+  const saveCredentials = async () => {
+    try {
+      await AsyncStorage.setItem(
+        "credentials",
+        JSON.stringify({
+          email: email.value,
+          password: password.value,
+        })
+      );
+      console.log("Credentials saved:", { email: email.value, password: password.value });
+    } catch (error) {
+      console.error("Failed to save credentials:", error.message);
+    }
+  };
 
   const onLoginPressed = async () => {
     const emailError = emailValidator(email.value);
@@ -33,27 +72,20 @@ export default function LoginScreen({ route, navigation }) {
     }
 
     try {
-      // const response = await axios.post('https://chrystal.seqinstitute.com/api/login', {
-      //   email: email.value, // Pass the email value as a string
-      //   password: password.value, // Pass the password value as a string
-      // });
-
-      // console.log('Login successful:', response.data);
-      
-      // Automatically log in using authState
+      if (rememberMe) {
+        await saveCredentials(); // Save credentials if Remember Me is checked
+      } else {
+        await AsyncStorage.removeItem("credentials"); // Clear credentials if "Remember Me" is unchecked
+      }
       await authState.login(email.value, password.value);
-      //navigation.replace('HomeScreen'); // Navigate to HomeScreen after login
-
     } catch (error) {
-      // Handle login error
-      console.error('Login failed:', error.response?.data || error.message);
-      Alert.alert('Login Failed', error.response?.data?.message || 'Please try again.');
+      console.error("Login failed:", error.response?.data || error.message);
+      Alert.alert("Login Failed", error.response?.data?.message || "Please try again.");
     }
   };
 
   return (
     <AnimatedBackground>
-      {/* <BackButton goBack={navigation.goBack}/> */}
       <View style={styles.logoContainer}>
         <Logo />
       </View>
@@ -98,7 +130,7 @@ export default function LoginScreen({ route, navigation }) {
             color={theme.colors.primary}
           />
           <Text style={styles.rememberMe}>Remember me.</Text>
-        </View> 
+        </View>
         <TouchableOpacity
           onPress={() => navigation.navigate("ResetPasswordScreen")}
         >
@@ -106,18 +138,17 @@ export default function LoginScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
       <Button mode="contained" onPress={onLoginPressed} style={styles.loginButton}>
-         <Text style={styles.buttonText}>Login</Text>
-       </Button>
+        <Text style={styles.buttonText}>Login</Text>
+      </Button>
       <View style={styles.footer}>
         <Text style={styles.footerText}>Don't have an account?</Text>
-        <TouchableOpacity onPress={() =>  navigation.navigate('CreateAccountScreen', { someParam: 'high 5' })}>
+        <TouchableOpacity onPress={() => navigation.navigate("CreateAccountScreen", { someParam: "high 5" })}>
           <Text style={styles.signUp}> SIGN UP</Text>
-         </TouchableOpacity>
-       </View> 
+        </TouchableOpacity>
+      </View>
     </AnimatedBackground>
   );
 }
-
 const styles = StyleSheet.create({
   logoContainer: {
     alignItems: "flex-start", // Align logo to the left

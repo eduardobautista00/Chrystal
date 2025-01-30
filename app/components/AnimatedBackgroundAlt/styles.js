@@ -13,15 +13,17 @@ const styles = StyleSheet.create({
     width: "100%",
     justifyContent: "center", // Center content vertically
     alignItems: "center", // Center content horizontally
+    //marginTop: '-55'
   },
   scrollViewContent: {
     flexGrow: 1, // Ensures that the content takes up the full height
     flexDirection: "column",
     justifyContent: "flex-start", // Center content within the ScrollView
     paddingHorizontal: 20,
-    paddingTop: 50,
-    height: "100%",
-    width: "100%",
+    marginTop: '20',
+    //paddingTop: 50,
+    height: "100vh",
+    width: "100vw",
   },
 });
 

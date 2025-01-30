@@ -40,14 +40,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ECEAFF',
+    //marginTop: 10,
   },
   gradient: {
     paddingHorizontal: 20,
-    paddingVertical: 40,
-    height: 300,
+    paddingTop: 10,
+    height: 250,
     width: '100%',
+    //height: '50%',
     borderBottomLeftRadius: 50,
     borderBottomRightRadius: 50,
+    //justifyContent: 'center'
   },
   backButtonContainer: {
     width: '100%',

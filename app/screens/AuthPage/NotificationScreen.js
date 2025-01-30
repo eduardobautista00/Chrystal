@@ -28,7 +28,7 @@ const NotificationScreen = ({ navigation }) => {
       </LinearGradient>
       <StatsCard />
       {/* PropertyList scrolls independently */}
-      <View style={styles.propertyListContainer}>
+      <View style={styles.notifListContainer}>
         <NotificationLists navigation={navigation} />
       </View>
       <BottomNavigation />
@@ -41,14 +41,16 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100vh',
     backgroundColor: '#ECEAFF',
+    //marginTop: "-50"
   },
   gradient: {
     paddingHorizontal: 20,
-    paddingVertical: 40,
-    height: 300,
+    paddingTop: 10,
+    height: 250,
     width: '100%',
     borderBottomLeftRadius: 50,
     borderBottomRightRadius: 50,
+    //justifyContent: 'center'
   },
   backButtonContainer: {
     width: '100%',
@@ -68,9 +70,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 50,
   },
-  propertyListContainer: {
+  notifListContainer: {
     flex: 1, // Allow the list to take remaining space
-    paddingVertical: 20,
+    //marginTop: 20,
+    // paddingVertical: 20,
   },
 });
 

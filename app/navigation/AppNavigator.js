@@ -56,14 +56,10 @@ function AuthStack() {
             initialRouteName={"DashboardScreen"}
             screenOptions={({ navigation }) => ({
                 headerLeft: () => <DrawerButton navigation={navigation} />,
-                headerStyle: {
-                    backgroundColor: 'white',
-                },
-                headerTintColor: 'black',
-                headerTitleStyle: {
-                    fontWeight: 'bold',
-                },
+                headerShown: false, // Globally hide headers
+                
             })}
+            headerMode="none"
         >
             <Stack.Screen name={"DashboardScreen"} options={{ title: 'Dashboard', headerShown: false,}} component={AuthPage_DashboardScreen} />
 
@@ -71,7 +67,10 @@ function AuthStack() {
                 <Stack.Screen name={"ProfileScreen"} options={{title:"Profile", headerShown: false,}}>
                     {/* Inline Sub Navigator */}
                     {() => (
-                        <Tab.Navigator>
+                        <Tab.Navigator screenOptions={{
+                            headerShown: false, // Ensure headers don't reserve space
+                            tabBarStyle: { display: 'none' }, // Hide tab bar globally if needed
+                        }}>
                             <Tab.Screen name='AuthPage_ProfileScreen' component={AuthPage_ProfileScreen}
                                 options={{
                                     tabBarLabel: 'Profile',
@@ -93,10 +92,12 @@ function AuthStack() {
                             <Tab.Screen name='AuthPage_AddPropertyImage' component={AuthPage_AddPropertyImage}
                                 options={{
                                     tabBarLabel: 'Add Property Images',
+                                    headerShown: false,
+                                    tabBarStyle: { display: 'none' }, // Hide the tab item in the tab bar
                                     tabBarIcon: ({ color, size }) => (
                                         <Ionicons name="images" color={color} size={size} />
                                     ),
-                                    tabBarStyle: { display: 'none' } // Hide the tab item in the tab bar
+                                   
                                 }}
                             />
                             <Tab.Screen name='AuthPage_AddPropertiesScreen' component={AuthPage_AddPropertiesScreen}

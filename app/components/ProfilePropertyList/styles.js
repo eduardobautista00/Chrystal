@@ -2,18 +2,20 @@ import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   propertyListContainer: {
-    marginTop: 20,
+    marginTop: 30,
     paddingHorizontal: 10,
   },
   propertyListHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 10
   },
   propertyListHeadertext: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 10
+    marginBottom: 10,
+    marginLeft: 10
   },
   addButton: {
     backgroundColor: '#FFD700',

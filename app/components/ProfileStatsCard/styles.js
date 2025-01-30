@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 const styles = StyleSheet.create({
   statsContainer: {
     position: 'absolute',
-    top: 250,
+    top: 200,
     zIndex: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',

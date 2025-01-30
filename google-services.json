@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "611841203314",
+    "project_id": "chrystal-aab91",
+    "storage_bucket": "chrystal-aab91.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:611841203314:android:701033c674de30e881f6eb",
+        "android_client_info": {
+          "package_name": "com.ob_eduardo.Krystal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAGUjVUGyx-MAnFT9CA-Q-lQiOFHvnptJI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

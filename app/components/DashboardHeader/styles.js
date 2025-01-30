@@ -2,8 +2,11 @@ import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
     headerContainer: {
-      paddingVertical: 10,
+      //paddingVertical: 10,
       backgroundColor: 'transparent',
+      borderWidth: 5,
+      borderColor: '#000',
+      zIndex: 999,
     },
     title: {
       fontSize: 24,

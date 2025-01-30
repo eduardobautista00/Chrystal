@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Krystal",
+    "name": "Chrystal",
     "slug": "Exlogrn",
     "version": "2.0.0",
     "orientation": "portrait",
@@ -12,10 +12,14 @@
       "backgroundColor": "#ffffff"
     },
     "platforms": ["ios", "android", "web"],
+    "firebase": {
+      "googleServicesFile": "./google-services.json"
+    },
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "plugins": [
         [
           "expo-build-properties",
@@ -25,7 +29,21 @@
                 "https://jitpack.io",
                 "https://maven.google.com",
                 "https://repo.maven.apache.org/maven2"
+              ],
+              "dependencies": [
+                "com.google.firebase:firebase-analytics:19.0.0",
+                "com.google.firebase:firebase-auth:21.0.1"
               ]
+            }
+          }
+        ],
+        [
+          "expo-firebase-core",
+          {
+            "firebaseCore": {
+              "android": {
+                "googleServicesFile": "./google-services.json"
+              }
             }
           }
         ]
@@ -35,7 +53,11 @@
           "apiKey": "AIzaSyAr9kfNHZVPuF9UelpQ-Vnu6F4jyCbuzYY"
         }
       },
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"],
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "NOTIFICATIONS"],
+      "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#000000"
+    },
       "adaptiveIcon": {
         "foregroundImage": "./assets/app.png",
         "backgroundColor": "#ffffff"

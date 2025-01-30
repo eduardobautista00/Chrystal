@@ -823,7 +823,6 @@ const renderWeeklyPieChart = () => {
   console.log("Selected Report  :", selectedreportType);
   console.log("Selected Month   :", selectedMonth);
 
-  // Determine the data source based on selected report type
   const selectedData = {
     sales: salesData,
     appointments: appointmentsData,
@@ -832,7 +831,6 @@ const renderWeeklyPieChart = () => {
     listings: newListingsData,
   }[selectedreportType];
 
-  // Check if selectedData is defined and contains the monthly data
   if (!selectedData || !selectedData.monthly) {
     console.log("No Monthly Data Available");
     return (
@@ -842,16 +840,9 @@ const renderWeeklyPieChart = () => {
     );
   }
 
-  console.log("Selected Data:", selectedData);
-  console.log("Monthly Data upper:", selectedData.monthly);
-
-  // Convert the selected month (number) to a readable month string (e.g., "Jan 2025")
   const monthLabel = new Date(2025, selectedMonth - 1).toLocaleString('default', { month: 'short', year: 'numeric' });
   const monthLabelText = new Date(2025, selectedMonth - 1).toLocaleString('default', { month: 'long' });
 
-  console.log("Formatted Month Label:", monthLabel);
-
-  // Check if the selectedMonth exists within the monthly data
   const monthlyData = selectedData.monthly[monthLabel];
   if (!monthlyData) {
     console.log(`No data for selected month: ${monthLabelText}`);
@@ -864,9 +855,6 @@ const renderWeeklyPieChart = () => {
     );
   }
 
-  console.log("Monthly Data:", monthlyData);
-
-  // Check if weekly data exists within the selected month
   if (!monthlyData.weekly) {
     console.log("No weekly data for the selected month");
     return (
@@ -878,33 +866,33 @@ const renderWeeklyPieChart = () => {
     );
   }
 
-  console.log("Weekly Data Structure (filtered):", monthlyData.weekly);
-
-  // Dynamically fetch all available weeks from the weekly data
   const weeklyEntries = Object.entries(monthlyData.weekly);
 
-  // Prepare the weekly data
-  const filteredWeeklyData = weeklyEntries.map(([weekLabel, amount]) => ({
-    weekLabel,
-    amount,
-  }));
+  // Define all weeks in a month (e.g., Week 1 to Week 5)
+  const allWeeks = ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5"];
+
+  // Merge allWeeks with available weekly data, setting missing weeks to amount = 0
+  const filteredWeeklyData = allWeeks.map((weekLabel) => {
+    const found = weeklyEntries.find(([label]) => label === weekLabel);
+    return {
+      weekLabel,
+      amount: found ? found[1] : 0, // Default amount to 0 if not found
+    };
+  });
 
   console.log("Filtered Weekly Data:", filteredWeeklyData);
 
-  // Calculate the total amount to show absolute values
   const totalAmount = filteredWeeklyData.reduce((total, data) => total + data.amount, 0);
 
-  // Create pie chart data with labels for absolute values
   const modifiedPieData = filteredWeeklyData.map((data, index) => ({
     ...data,
     name: data.weekLabel,
-    label: data.amount > 0 ? `${data.amount.toLocaleString()}` : "", // Add absolute value label
+    label: data.amount > 0 ? `${data.amount.toLocaleString()}` : "",
     color: ["#FF6347", "#98FB98", "#87CEFA", "#FFD700", "#FFA07A"][index % 5],
     legendFontColor: "#7F7F7F",
     legendFontSize: 15,
   }));
 
-  // Handle cases where all weekly data is zero
   if (modifiedPieData.every((item) => item.amount === 0)) {
     return (
       <View style={[styles.emptyChart]}>
@@ -915,26 +903,30 @@ const renderWeeklyPieChart = () => {
     );
   }
 
-  // Render the pie chart with absolute value labels
   return (
-    <PieChart
-      data={modifiedPieData}
-      width={Dimensions.get("window").width - 40}
-      height={250}
-      chartConfig={{
-        backgroundColor: "#e26a00",
-        backgroundGradientFrom: "#fb8c00",
-        backgroundGradientTo: "#ffa726",
-        decimalPlaces: 2,
-        color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-        style: {
-          borderRadius: 16,
-        },
-      }}
-      accessor="amount"
-      backgroundColor="transparent"
-      paddingLeft={15}
-    />
+    <View style={{ paddingHorizontal: 40, alignItems: "center" }}>
+      <PieChart
+        data={modifiedPieData}
+        width={Dimensions.get("window").width}
+        height={315}
+        chartConfig={{
+          backgroundColor: "#e26a00",
+          backgroundGradientFrom: "#fb8c00",
+          backgroundGradientTo: "#ffa726",
+          decimalPlaces: 2,
+          color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+          style: {
+            borderRadius: 16,
+          },
+        }}
+        accessor="amount"
+        backgroundColor="transparent"
+        paddingLeft={40} // Adjust this to increase spacing for labels
+        center={[-5, 0]} // Adjust this to center the chart itself
+        hasLegend={true} // Ensure legend is visible
+        absoluteCenter={{ x: 0, y: 0 }} // Adds vertical space between chart and legend
+      />
+    </View>
   );
 };
 
@@ -1043,7 +1035,7 @@ const renderMonthlyChart = () => {
     return (
       <View style={[styles.emptyChart]}>
         <Text style={styles.emptyChartText}>
-        No Data Available for {selectedMonth}
+        No Data Available for {selectedYear}
         </Text>
       </View>
     );
@@ -1064,7 +1056,7 @@ const renderMonthlyChart = () => {
           ],
         }}
         width={Dimensions.get("window").width - 0}
-        height={320}
+        height={300}
         chartConfig={barChartConfig}
         style={[styles.chart, { marginLeft: -75}]}
         verticalLabelRotation={-45}
@@ -1104,7 +1096,7 @@ const renderMonthlyChart = () => {
           legend,
         }}
         width={Dimensions.get("window").width - 0}
-        height={270}
+        height={250}
         chartConfig={{
           backgroundColor: "#ECEAFF",
           backgroundGradientFrom: "#ECEAFF",
@@ -1116,7 +1108,7 @@ const renderMonthlyChart = () => {
             borderRadius: 16,
           },
         }}
-        bezier={false}
+        bezier={true}
         style={[styles.chart, { marginLeft: -75 }]}
         withShadow={false}
         verticalLabelRotation={-45}
@@ -1219,7 +1211,7 @@ const renderYearlyChart = () => {
           legend
         }}
         width={Dimensions.get("window").width - 0}
-        height={270}
+        height={250}
         chartConfig={{
           backgroundColor: "#ECEAFF",
           backgroundGradientFrom: "#ECEAFF",
@@ -1259,10 +1251,10 @@ const renderYearlyChart = () => {
             return Math.round(yearlyData[selectedYear]?.[quarter]?.average || 0);
         });
         legend = [
-            "Q1 (Jan. - Mar.)", 
-            "Q2 (Apr. - Jun.)", 
-            "Q3 (Jul. - Sep.)", 
-            "Q4 (Oct. - Dec.)", 
+          "Q1\n(Jan. - Mar.)", 
+          "Q2\n(Apr. - Jun.)", 
+          "Q3\n(Jul. - Sep.)", 
+          "Q4\n(Oct. - Dec.)", 
         ];
     }
 
@@ -1290,9 +1282,9 @@ const renderYearlyChart = () => {
     return (
       <View style={{ alignItems: "center" }}>
         <PieChart
-          data={modifiedPieData}
-          width={Dimensions.get("window").width - 40}
-          height={250}
+          data={pieData}
+          width={Dimensions.get("window").width}
+          height={300}
           chartConfig={{
             backgroundColor: "#ECEAFF",
             backgroundGradientFrom: "#ECEAFF",
@@ -1306,7 +1298,11 @@ const renderYearlyChart = () => {
           }}
           accessor="value"
           backgroundColor="transparent"
-          paddingLeft="15"
+          paddingLeft={20} // Adjust this to increase spacing for labels
+          center={[5, 0]} // Adjust this to center the chart itself
+          hasLegend={true} // Ensure legend is visible
+          absoluteCenter={{ x: 0, y: 0 }} // Adds vertical space between chart and legend
+          legend={legend}
         />
       </View>
     );
@@ -1334,7 +1330,7 @@ const getRandomColor = () =>
     fillShadowGradientOpacity: 1,
     backgroundGradientFromOpacity: 0,
     backgroundGradientToOpacity: 0,
-    barPercentage: 0.5,
+    barPercentage: 0.35,
     decimalPlaces: 0,
     color: (opacity = 1) => `rgba(123, 97, 255, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
@@ -1343,7 +1339,7 @@ const getRandomColor = () =>
       fill: '#000'
     },
     propsForHorizontalLabels: {
-      fontSize: 8,
+      fontSize: 10,
       fill: '#000',
       rotation: -45
     },
@@ -1394,7 +1390,7 @@ const getRandomColor = () =>
           ],
         }}
           width={Dimensions.get('window').width}
-          height={320}
+          height={300}
           chartConfig={barChartConfig}
           style={[styles.chart, { marginLeft: -75 }]}
           showValuesOnTopOfBars={true}
@@ -1569,15 +1565,17 @@ const getRandomColor = () =>
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ECEAFF'
+    backgroundColor: '#ECEAFF',
+    //marginTop: "-50"
   },
   gradient: {
     paddingHorizontal: 20,
-    paddingVertical: 40,
-    height: 300,
+    paddingTop: 10,
+    height: 250,
     width: '100%',
     borderBottomLeftRadius: 50,
-    borderBottomRightRadius: 50
+    borderBottomRightRadius: 50,
+    //justifyContent: 'center'
   },
   backButtonContainer: {
     width: '100%',
@@ -1591,9 +1589,10 @@ const styles = StyleSheet.create({
     marginLeft: 20,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 10
   },
   button: {
     backgroundColor: '#ffffff',
@@ -1604,19 +1603,21 @@ const styles = StyleSheet.create({
   statsContainer: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 35,
+    paddingTop: 40,
     width: '100%'
   },
   periodSelector: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginTop: 5,
+    marginBottom: 10
   },
   periodButton: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 10,
-    backgroundColor: '#fff'
+    backgroundColor: '#fff',
+    //width: '22%'
   },
   selectedPeriod: {
     backgroundColor: '#7B61FF'
@@ -1624,16 +1625,18 @@ const styles = StyleSheet.create({
   periodText: {
     color: '#000',
     fontSize: 14,
-    fontWeight: '600'
+    fontWeight: '600',
+    textAlign: 'center'
   },
   selectorContainer: {
     flexDirection: 'row-reverse',
     justifyContent: 'space-around',
     marginBottom: 0,
-    marginTop: 10
+    marginTop: 10,
+    //height: 50,
   },
   weekSelector: {
-    width: '48%'
+    width: '48%',
   },
   reportSelector: {
     width: '48%'
@@ -1644,9 +1647,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   picker: {
-    height: 55,
+    //height: 30,
     paddingHorizontal: 10,
-    paddingVertical: 10
   },
   chartContainer: {
     marginTop: 0,
@@ -1654,11 +1656,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   chart: {
-    marginVertical: 8,
+    marginTop: 15,
     borderRadius: 16,
     marginLeft: -50,
     width: '100%',
     paddingBottom: 20
+
   },
   emptyChart: {
     width: '100%',

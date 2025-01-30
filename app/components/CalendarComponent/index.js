@@ -130,6 +130,7 @@ export default function CalendarComponent() {
       return;
     }
     setEditingTodoId(todoId);
+    console.log('editing todo id:', todoId )
     setNewTodo(todo.title);
     setTime(new Date(todo.deadline));
     setSelectedProperty(properties.find(p => p.id === todo.property_id));
@@ -143,37 +144,39 @@ export default function CalendarComponent() {
           ? time.toTimeString().slice(0, 5)
           : time;
         const formattedDeadline = `${selectedDate}T${formattedTime}`;
-
+  
         const todoData = {
+          id: todoId, // Ensure the ID is included
           title: newTodo,
           deadline: formattedDeadline,
           property_id: selectedProperty.id,
           agent_id: authState.user.id,
           for_buyer: false,
         };
-
+  
         const response = await fetch(`${apiUrl}/update-todos/${todoId}`, {
-          method: 'PUT',
+          method: 'PUT',  // Ensure your API supports PUT, or change to PATCH if needed
           headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
           },
           body: JSON.stringify(todoData),
         });
-
+  
         const contentType = response.headers.get('Content-Type');
         if (contentType && contentType.includes('application/json')) {
           const data = await response.json();
-
+  
           if (!response.ok) {
             console.error('API Error Response:', data);
             throw new Error(`Failed to update To-Do: ${data.message || 'Unknown error'}`);
           }
-
+  
           Alert.alert('Success', 'To-Do Updated Successfully');
           resetForm();
           setModalVisible(false);
-          await fetchTodos();
+          setEditingTodoId(null);
+          await fetchTodos(); // Refresh the list to reflect updates
         } else {
           const rawResponse = await response.text();
           console.error('Unexpected Response:', rawResponse);
@@ -187,6 +190,7 @@ export default function CalendarComponent() {
       Alert.alert('Error', 'Please fill in all fields');
     }
   };
+  
 
   const handleAddTodo = async () => {
     if (newTodo && selectedDate && selectedProperty && time) {
@@ -243,48 +247,6 @@ export default function CalendarComponent() {
           }
   
           console.log('Response Data:', data);
-  
-          // Notification data (commented out)
-          // const notificationData = {
-          //   user_id: authState.user.id,
-          //   title: newTodo,
-          //   message: `Your todo for ${selectedProperty.property_name} is near its deadline.`,
-          //   deadline: formattedDeadline,
-          // };
-  
-          // console.log('Notification Request Data:', notificationData);
-  
-          // Create notification (commented out)
-          // const notificationResponse = await fetch(`${apiUrl}/create-notifications`, {
-          //   method: 'POST',
-          //   headers: {
-          //     'Content-Type': 'application/json',
-          //     Accept: 'application/json',
-          //   },
-          //   body: JSON.stringify(notificationData),
-          // });
-  
-          // const notificationContentType = notificationResponse.headers.get('Content-Type');
-          // if (
-          //   notificationContentType &&
-          //   notificationContentType.includes('application/json')
-          // ) {
-          //   const notificationResult = await notificationResponse.json();
-  
-          //   if (!notificationResponse.ok) {
-          //     console.error('Notification API Error Response:', notificationResult);
-          //     throw new Error(
-          //       `Failed to create notification: ${notificationResult.message || 'Unknown error'}`
-          //     );
-          //   }
-  
-          //   console.log('Notification Response Data:', notificationResult);
-          // } else {
-          //   const rawNotificationResponse = await notificationResponse.text();
-          //   console.error('Unexpected Notification Response:', rawNotificationResponse);
-          //   throw new Error('Unexpected response format from server for notifications');
-          // }
-  
           // Success feedback
           Alert.alert('Success', 'To-Do Created Successfully');
           resetForm(); // Reset the form after adding the todo
@@ -555,11 +517,7 @@ export default function CalendarComponent() {
       setLoading(false);
     }
   };
-  
-  
-  
-  
-  
+
   const dayComponent = ({ date, state }) => {
     const dayTodos = todos[date.dateString]; // Use the selected date's deadline_date to find todos
   
@@ -895,31 +853,36 @@ const GridView = React.memo(({ todos, openModal }) => {
     )}
   </View>
 )}
-
-
-
       {mainTab === 'monthly' && (
-        <Calendar
-          current={new Date().toISOString().split('T')[0]}
-          minDate={'2024-01-01'}
-          maxDate={'2024-12-31'}
-          onDayPress={handleDatePress}
-          monthFormat={'MMMM yyyy'}
-          hideExtraDays={false}
-          style={styles.calendarContainer}
-          markedDates={{
-            ...Object.keys(todos).reduce((acc, date) => {
-              acc[date] = { 
-                marked: true, 
-                dotColor: '#7B61FF',
-                activeOpacity: 0.7 
-              };
-              return acc;
-            }, {}),
-          }}
-          dayComponent={dayComponent}
-        />
-      )}
+      <ScrollView 
+      style={styles.scrollViewContainer} 
+      contentContainerStyle={styles.scrollViewContentContainer}
+      showsVerticalScrollIndicator={false} // Hides vertical scroll indicator
+      showsHorizontalScrollIndicator={false} // Hides horizontal scroll indicator
+    >
+    <Calendar
+      current={new Date().toISOString().split('T')[0]}
+      minDate={'2024-01-01'}
+      maxDate={'2024-12-31'}
+      onDayPress={handleDatePress}
+      monthFormat={'MMMM yyyy'}
+      hideExtraDays={false}
+      style={styles.calendarContainer}
+      markedDates={{
+        ...Object.keys(todos).reduce((acc, date) => {
+          acc[date] = { 
+            marked: true, 
+            dotColor: '#7B61FF',
+            activeOpacity: 0.7 
+          };
+          return acc;
+        }, {}),
+      }}
+      dayComponent={dayComponent}
+    />
+  </ScrollView>
+)}
+
 
       {mainTab === 'yearly' && (
         <View>

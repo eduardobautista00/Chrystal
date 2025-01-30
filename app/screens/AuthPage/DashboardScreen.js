@@ -62,7 +62,7 @@ export default function Dashboard() {
 
 const styles = StyleSheet.create({
   headerContainer: {
-    //marginTop: 50,
+    //marginTop: '-20',
   },
   container: {
     flex: 1,

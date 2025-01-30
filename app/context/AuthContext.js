@@ -41,7 +41,7 @@ export const AuthContextProvider = ({ children }) => {
   const logout = async () => {
     removeToken();
     authActions.logoutUser(authDispatch);
-    navigation.navigate("StartScreen");
+    //navigation.navigate("StartScreen");
 
   }
 

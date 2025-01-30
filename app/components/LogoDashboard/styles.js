@@ -5,7 +5,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between', // Pushes logo and icon to opposite ends
     paddingHorizontal: 20,
-    paddingTop: 50,
+    //paddingTop: 50,
     zIndex: 11,
   },
   logoImage: {

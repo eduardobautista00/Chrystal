@@ -5,51 +5,61 @@ const styles = StyleSheet.create({
       flex: 1,
       backgroundColor: '#ECEAFF', // Light purple background
       padding: 10,
-      marginTop: 50,
+      marginTop: 30,
     },
     header: {
-      fontSize: 22,
+      fontSize: 24,
       fontWeight: 'bold',
       color: '#2f2f2f',
       marginBottom: 10,
+      marginLeft: 10
     },
     notificationContainer: {
       flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: '#fff',
+      padding: 20,
       borderRadius: 8,
-      padding: 15,
-      marginBottom: 10,
+      marginVertical: 5,
+      alignItems: 'center',
       shadowColor: '#000',
-      shadowOpacity: 0.1,
-      shadowRadius: 10,
-      elevation: 5,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
     },
+  
     iconContainer: {
       width: 30,
       height: 30,
       borderRadius: 15,
-      backgroundColor: '#4b8bec', // Blue background for icon
+      backgroundColor: 'transparent', // Blue background for icon
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: 10,
     },
     icon: {
       color: '#fff',
-      fontSize: 18,
+      fontSize: 16,
     },
+    unreadIcon: {
+      color: '#4CAF50', // Green for unread icon
+    },
+    readIcon: {
+      color: '#D3D3D3', // Light gray for read icon
+    },  
     textContainer: {
       flex: 1,
-      //justifyContent: 'center'
+      flexDirection: 'row',
+      justifyContent: 'space-between'
     },
     title: {
       fontSize: 14,
       color: '#2f2f2f',
-      //verticalAlign: 'center'
     },
-    time: {
-      fontSize: 12,
+    timeAgo: {
+      fontSize: 10, // Reduce the font size slightly
       color: '#888',
+      fontStyle: 'italic',
+      position: 'relative',
+      top: 15, // Move the text slightly downward
     },
     modalContainer: {
       flex: 1,
@@ -62,7 +72,6 @@ const styles = StyleSheet.create({
       padding: 20,
       width: '90%',
       borderRadius: 10,
-      //alignItems: 'center',
     },
     modalTitle: {
       fontSize: 26,
@@ -91,7 +100,7 @@ const styles = StyleSheet.create({
       flexDirection: 'row',
     },
     modalDeadlineLabel: {
-      flex: 1,
+      //flex: 1,
       fontSize: 14,
       fontWeight: 'bold',
       marginBottom: 2.5
@@ -112,6 +121,22 @@ const styles = StyleSheet.create({
       color: 'white',
       fontWeight: 'bold',
       textAlign: "center"
+    },
+    readNotification: {
+      backgroundColor: '#B0B0B0', // Light gray for read notifications
+    },
+    unreadNotification: {
+      backgroundColor: '#fff', // White background for unread notifications
+      borderLeftColor: '#7B61FF', // Purple border for unread notifications
+      borderLeftWidth: 5,
+      elevation: 10, // More elevation for unread to stand out
+    },
+    readTimeAgo: {
+      color: '#fff', // White for read (consistent with dark background)
+      //fontStyle: 'italic'
+    },
+    unreadTimeAgo: {
+      color: '#000', // Black for unread
     },
   });
   export default styles;

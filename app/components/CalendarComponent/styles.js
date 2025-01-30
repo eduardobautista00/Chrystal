@@ -3,9 +3,15 @@ import { StyleSheet, Dimensions } from 'react-native';
 const screenWidth = Dimensions.get('window').width;
 
 const styles = StyleSheet.create({
+  scrollViewContainer: {
+    flex: 1, // Make it take up available space
+  },
+  scrollViewContentContainer: {
+    paddingBottom: 20, // Optional: Add padding at the bottom if needed
+  },
   container: {
     flex: 1,
-    paddingTop: 20,
+    //paddingTop: 10,
     backgroundColor: '#ECEAFF',
   },
   calendarContainer: {
@@ -187,8 +193,8 @@ const styles = StyleSheet.create({
   },
   mainTabContainer: {
     flexDirection: 'row',
-    marginBottom: 15,
-    marginTop: 20,
+    //marginBottom: 15,
+    marginTop: 35,
     borderRadius: 8,
     borderColor: '#7B61FF',
     borderWidth: 1,
