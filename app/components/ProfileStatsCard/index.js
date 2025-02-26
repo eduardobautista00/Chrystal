@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import styles from './styles';
 import { useAuth } from "../../context/AuthContext";
 import getEnvVars from '../../config/env';
@@ -7,7 +8,7 @@ import getEnvVars from '../../config/env';
 const StatsCard = () => {
   const { apiUrl } = getEnvVars();
   const { authState } = useAuth();
-  const [propertiesCount, setPropertiesCount] = useState(0);
+  const [propertiesCount, setPropertiesCount] = useState({ available: 0, pending: 0 });
   const [todosCount, setTodosCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -22,13 +23,17 @@ const StatsCard = () => {
         if (Array.isArray(data)) {
           // Filter properties by user_id matching the logged-in user's ID
           const userProperties = data.filter(property => property.user_id === authState.user.id);
-          setPropertiesCount(userProperties.length);
+          setPropertiesCount({
+            available: userProperties.filter(p => p.status === 'available').length,
+            pending: userProperties.filter(p => p.status === 'pending').length,
+            sold: userProperties.filter(p => p.status === 'sold').length
+          });
         } else {
-          setPropertiesCount(0); // Ensure properties count is 0 if the response is not an array
+          setPropertiesCount({ available: 0, pending: 0, sold: 0 }); // Ensure properties count is 0 if the response is not an array
         }
       } catch (error) {
         console.error('Error fetching properties:', error);
-        setPropertiesCount(0); // Set to 0 in case of error to avoid undefined state
+        setPropertiesCount({ available: 0, pending: 0, sold: 0 }); // Set to 0 in case of error to avoid undefined state
       }
     };
     
@@ -93,9 +98,26 @@ const StatsCard = () => {
       ) : (
         <>
           <View style={styles.stat}>
-            <Text style={styles.statNumber}>{propertiesCount}</Text>
+            <View style={styles.statNumberContainer}>
+              <View style={styles.statItem}>
+                <Icon style={styles.statIcon} name="home" size={22} color="#0000FF" /> 
+                <Text style={styles.statNumber}>{propertiesCount.available}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Icon style={styles.statIcon} name="hourglass-half" size={22} color="#FFA500" /> 
+                <Text style={styles.statNumber}>{propertiesCount.pending}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Icon style={styles.statIcon} name="check-circle" size={22} color="#008000" /> 
+                <Text style={styles.statNumber}>{propertiesCount.sold}</Text>
+              </View>
+            </View>
+
+           <View style={styles.statLabelContainer}>
             <Text style={styles.statLabel}>Properties</Text>
+            </View>
           </View>
+        
           <View style={styles.stat}>
             <Text style={styles.statNumber}>{todosCount}</Text>
             <Text style={styles.statLabel}>To-do's</Text>

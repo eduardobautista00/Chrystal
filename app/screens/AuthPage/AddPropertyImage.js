@@ -51,11 +51,16 @@ export default function AddPropertyImageScreen({ route }) {
         quality: 1,
       });
 
+      // Log the result to see the structure of the response
+      console.log("Image picker result:", result);
+
       if (!result.canceled) {
         const selectedImageUri = result.assets[0].uri;
         const imageFile = await uriToFile(selectedImageUri, "property_image.jpg");
-        setSelectedImage(imageFile);
+        setSelectedImage(selectedImageUri);
         setImageUri(selectedImageUri);
+        console.log("Selected Image:", selectedImageUri);
+        console.log("Selected Image URL/uri:", imageFile);
       }
     } catch (error) {
       Alert.alert("Error", "An unexpected error occurred while selecting the image.");
@@ -64,41 +69,39 @@ export default function AddPropertyImageScreen({ route }) {
   };
 
   const handleSubmit = async () => {
-    if (!selectedImage) {
-      Alert.alert("No Image Selected", "Please upload a property image.");
-      return;
-    }
+    // Remove the check for selectedImage
+    // if (!selectedImage) {
+    //   Alert.alert("No Image Selected", "Please upload a property image.");
+    //   return;
+    // }
   
     try {
       const formDataToSubmit = new FormData();
-  
-      // Append the image file
-      //formDataToSubmit.append("image_url", selectedImage);
-      formDataToSubmit.append('image_url', {
-        uri: imageUri, // The URI of the image
-        type: selectedImage.type || 'image/jpeg', // The MIME type of the image
-        name: selectedImage.name || 'property_image',
-      });
-      // Flatten seller information and append it as top-level fields
-      const { seller, ...restData } = sanitizedData;
-      Object.keys(restData).forEach((key) => {
-        formDataToSubmit.append(key, restData[key]);
-      });
-  
-      Object.keys(seller).forEach((key) => {
-        formDataToSubmit.append(key, seller[key]);
-      });
-  
-      // Debugging: Log the transformed FormData
-      console.log("FormData being sent to the API:");
-      for (const [key, value] of formDataToSubmit.entries()) {
-        console.log(`${key}:`, value);
+      // Append the image file only if selectedImage is provided
+      if (selectedImage) {
+        formDataToSubmit.append('image_url', {
+          uri: selectedImage, // Use the selectedImage's URI
+          type: selectedImage.type || 'image/jpeg', // The MIME type of the image
+          name: selectedImage.name || 'property_image', // Default name for the image
+        });
       }
+      // Use sanitizedData directly without flattening
+      Object.keys(sanitizedData).forEach((key) => {
+        formDataToSubmit.append(key, sanitizedData[key]);
+      });
+  
+      // Debugging: Log the transformed FormData as JSON
+      console.log("FormData being sent to the API:");
+      const formDataObject = {};
+      formDataToSubmit.forEach((value, key) => {
+        formDataObject[key] = value instanceof File ? value.name : value;
+      });
+      console.log(JSON.stringify(formDataObject, null, 2));
   
       const response = await property.addProperty(formDataToSubmit);
   
       if (response) {
-        Alert.alert("Success", "Your property details have been submitted.");
+        Alert.alert("Success", "Your property details have been submitted. Wait for approval.");
         navigation.goBack();
       } else {
         Alert.alert("Error", "Failed to add property. Please try again.");

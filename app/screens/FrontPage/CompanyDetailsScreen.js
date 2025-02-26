@@ -15,12 +15,13 @@ export default function CompanyDetailsScreen({ navigation, route }) {
   const [agencyName, setagencyName] = useState({ value: "", error: "" });
   const [numberOfLocations, setNumberOfLocations] = useState({ value: "", error: "" });
   const [address, setAddress] = useState({ value: "", error: "" });
-  const [coverage, setCoverage] = useState({ value: "", error: "" });
-  const [type, setType] = useState({ value: "", error: "" });
+  const [coverage, setCoverage] = useState([]);
+  const [coverageError, setCoverageError] = useState("");
+  const [type, setType] = useState([]);
+  const [typeError, setTypeError] = useState("");
   const { agentInfo } = route.params; // Get agentInfo from navigation route parameters
   const { register_user } = register.registerState;
-  console.log(agentInfo);
-
+  console.log('agentInfo', agentInfo);
 
   const validateInputs = () => {
     let isValid = true;
@@ -37,35 +38,61 @@ export default function CompanyDetailsScreen({ navigation, route }) {
       setAddress({ ...address, error: "Address is required" });
       isValid = false;
     }
-    if (!coverage.value) {
-      setCoverage({ ...coverage, error: "Coverage is required" });
+    if (coverage.length === 0) {
+      setCoverageError("Coverage is required");
       isValid = false;
+    } else {
+      setCoverageError("");
     }
-    if (!type.value) {
-      setType({ ...type, error: "Type is required" });
+    if (type.length === 0) {
+      setTypeError("Type is required");
       isValid = false;
+    } else {
+      setTypeError("");
     }
 
     return isValid;
   };
 
+  const toggleCoverage = (option) => {
+    setCoverageError(""); // Clear error when user makes a selection
+    setCoverage((prev) => 
+      prev.includes(option) ? prev.filter(item => item !== option) : [...prev, option]
+    );
+  };
+
+  const toggleType = (option) => {
+    setTypeError(""); // Clear error when user makes a selection
+    setType((prev) => 
+      prev.includes(option) ? prev.filter(item => item !== option) : [...prev, option]
+    );
+  };
+
   const onSubmitPressed = async () => {
+    // Call validateInputs to check for errors
+    const isValid = validateInputs();
+    if (!isValid) {
+      Alert.alert("Validation Error", "Please fill in all required fields.");
+      return; // Exit if validation fails
+    }
+
     // Add company details directly into agentInfo
     agentInfo.company_name = agencyName.value;
     agentInfo.no_of_location = numberOfLocations.value;
     agentInfo.company_address = address.value;
-    agentInfo.company_property_coverage = coverage.value;
-    agentInfo.company_property_type = type.value;
+    agentInfo.company_property_coverage = coverage.join(", ");
+    agentInfo.company_property_type = type.join(", ");
 
     // Pass both agent info and company info to the registerUser
     try {
-        await register.registerAgent(agentInfo); // Call registerUser with both sets of data
-        //console.log(agentInfo);
-        navigation.navigate('AgentRegistrationSuccess');
+      console.log('Complete agentInfo', agentInfo);
+      await register.registerAgent(agentInfo); // Call registerUser with both sets of data
+      
+      navigation.navigate('AgentRegistrationSuccess');
     } catch (error) {
-        console.error("Registration error:", error);
+      console.error("Registration error:", error);
     }
-};
+  };
 
   return (
       <AnimatedBackground>
@@ -107,27 +134,60 @@ export default function CompanyDetailsScreen({ navigation, route }) {
           errorText={address.error}
           style={styles.input}
         />
-        <TextInput
-          label="Coverage"
-          returnKeyType="next"
-          value={coverage.value}
-          onChangeText={(text) => setCoverage({ value: text, error: "" })}
-          error={!!coverage.error}
-          errorText={coverage.error}
-          style={styles.input}
-        />
-        <Text style={styles.exampleText}>Example: rural, suburban, urban.</Text>
+        <View style={styles.coverageContainer}>
+          <Text style={styles.label}>Coverage</Text>
+          <View style={styles.coverageOptions}>
+            {['Rural', 'Suburban', 'Urban'].map((option) => (
+              <TouchableOpacity 
+                key={option} 
+                onPress={() => toggleCoverage(option)} 
+                style={[styles.coverageOptionButton, coverage.includes(option) && styles.selectedCoverageOption]}
+              >
+                <Text style={[styles.optionText, coverage.includes(option) && styles.selectedText]}>{option}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={styles.selectedText}>Selected Coverage: {coverage.join(", ")}</Text>
+        </View>
 
-        <TextInput
-          label="Type"
-          returnKeyType="done"
-          value={type.value}
-          onChangeText={(text) => setType({ value: text, error: "" })}
-          error={!!type.error}
-          errorText={type.error}
-          style={styles.input}
-        />
-        <Text style={styles.exampleText}>Example: house, townhouse, unit, land.</Text>
+        <View style={styles.propertyTypeContainer}>
+          <Text style={styles.label}>Property Type</Text>
+          <View style={styles.propertyTypeOptions}>
+            <View style={styles.propertyTypeRow}>
+              <TouchableOpacity 
+                key="House" 
+                onPress={() => toggleType('House')} 
+                style={[styles.propertyTypeOptionButton, type.includes('House') && styles.selectedPropertyTypeOption]}
+              >
+                <Text style={[styles.optionText, type.includes('House') && styles.selectedText]}>House</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                key="Townhouse" 
+                onPress={() => toggleType('Townhouse')} 
+                style={[styles.propertyTypeOptionButton, type.includes('Townhouse') && styles.selectedPropertyTypeOption]}
+              >
+                <Text style={[styles.optionText, type.includes('Townhouse') && styles.selectedText]}>Townhouse</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.propertyTypeRow}>
+              <TouchableOpacity 
+                key="Unit" 
+                onPress={() => toggleType('Unit')} 
+                style={[styles.propertyTypeOptionButton, type.includes('Unit') && styles.selectedPropertyTypeOption]}
+              >
+                <Text style={[styles.optionText, type.includes('Unit') && styles.selectedText]}>Unit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                key="Land" 
+                onPress={() => toggleType('Land')} 
+                style={[styles.propertyTypeOptionButton, type.includes('Land') && styles.selectedPropertyTypeOption]}
+              >
+                <Text style={[styles.optionText, type.includes('Land') && styles.selectedText]}>Land</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <Text style={styles.selectedText}>Selected Property Type: {type.join(", ")}</Text>
+        </View>
 
         <Button mode="contained" onPress={onSubmitPressed} style={styles.submitButton}>
           <Text style={styles.buttonText}>Register</Text>
@@ -183,5 +243,59 @@ const styles = StyleSheet.create({
     top: 40,
     left: 30,
     paddingTop: 20
+  },
+  coverageContainer: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  coverageOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  propertyTypeContainer: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  propertyTypeOptions: {
+    flexDirection: 'column',
+    gap: 10,
+  },
+  propertyTypeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  coverageOptionButton: {
+    borderWidth: 2,
+    borderColor: "#7B61FF",
+    backgroundColor: "#7B61FF",
+    borderRadius: 20,
+    paddingVertical: 12,
+    marginVertical: 8,
+    alignItems: "center",
+    width: '30%',
+  },
+  propertyTypeOptionButton: {
+    borderWidth: 2,
+    borderColor: "#7B61FF",
+    backgroundColor: "#7B61FF",
+    borderRadius: 20,
+    paddingVertical: 12,
+    marginVertical: 8,
+    alignItems: "center",
+    width: '48%',
+  },
+  selectedCoverageOption: {
+    backgroundColor: "#FFFFFF", // Change background when selected
+    borderColor: "#7B61FF", // Keep border consistent
+  },
+  selectedPropertyTypeOption: {
+    backgroundColor: "#FFFFFF", // Change background when selected
+    borderColor: "#7B61FF", // Keep border consistent
+  },
+  optionText: {
+    color: '#FFFFFF',
+  },
+  selectedText: {
+    color: '#7B61FF',
   },
 });

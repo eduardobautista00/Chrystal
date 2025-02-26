@@ -6,37 +6,77 @@ import TextInput from "../../components/TextInput";
 import AnimatedBackground from '../../components/AnimatedBackground';
 import BackButton from '../../components/BackButton';
 import { useData } from "../../context/DataContext"; // Import useData
+import { Dropdown } from 'react-native-element-dropdown'; // Import Dropdown component
+import getEnvVars from '../../config/env';
 
 export default function AgentRegistrationScreen({ navigation }) {
   const { register } = useData(); // Access register and registerAgent
+  const { apiUrl } = getEnvVars();
   const [agentData, setAgentData] = useState({
-    fullName: ``,
+    full_name: ``,
     email: '',
     password: '',
-    licenseNumber: '',
+    license_number: '',
     address: '',
     coverage: '',
-    propertyType: '',
-    withCompany: false,
-    companyName: '',
-    noofLocation: '',
-    companyAddress: '',
-    companyCoverage: '',
-    companyPropertyType: '',
+    property_type: '',
+    with_company: true,
+    company_name: '',
+    no_of_location: '',
+    company_address: '',
+    company_property_coverage: '',
+    company_property_type: '',
   });
   const [errors, setErrors] = useState({});
-  const [company, setCompany] = useState(null);
-  const { register_user } = register.registerState;
+  const [company, setCompany] = useState("Yes");
+  const register_user = register.registerState;
   
+  const coverageOptions = ['Rural', 'Suburban', 'Urban'];
+  const propertyTypeOptions = ['House', 'Townhouse', 'Unit', 'Land'];
+
+  console.log('with company?', agentData.with_company);
+
+  
+
+  const handleCoverageSelect = (value) => {
+    const currentCoverage = agentData.coverage.split(',').map(item => item.trim());
+    if (currentCoverage.includes(value)) {
+      // Remove the value if it's already selected
+      const newCoverage = currentCoverage.filter(item => item !== value).join(', ');
+      setAgentData((prevData) => ({ ...prevData, coverage: newCoverage }));
+      console.log('coverage updated', newCoverage); // Log the updated coverage
+    } else {
+      // Add the value if it's not selected
+      const newCoverage = currentCoverage.length === 0 ? value : `${agentData.coverage.trim() ? agentData.coverage + ', ' : ''}${value}`; // Ensure no leading comma
+      setAgentData((prevData) => ({ ...prevData, coverage: newCoverage }));
+      console.log('coverage updated', newCoverage); // Log the updated coverage
+    }
+  };
+
+  const handlePropertyTypeSelect = (value) => {
+    const currentPropertyType = agentData.property_type.split(',').map(item => item.trim());
+    if (currentPropertyType.includes(value)) {
+      // Remove the value if it's already selected
+      const newPropertyType = currentPropertyType.filter(item => item !== value).join(', ');
+      setAgentData((prevData) => ({ ...prevData, property_type: newPropertyType }));
+      console.log('property type updated', newPropertyType); // Log the updated property type
+    } else {
+      // Add the value if it's not selected
+      const newPropertyType = currentPropertyType.length === 0 ? value : `${agentData.property_type.trim() ? agentData.property_type + ', ' : ''}${value}`; // Ensure no leading comma
+      setAgentData((prevData) => ({ ...prevData, property_type: newPropertyType }));
+      console.log('property type updated', newPropertyType); // Log the updated property type
+    }
+  };
+
   //console.log(register);
-  //console.log(user);
+  //console.log(user);  
 
   useEffect(() => {
     if (register_user && register_user.fullName) {
       setAgentData((prevData) => ({
         ...prevData,
-        fullName: register_user.fullName, // Pre-fill the fullName from register_user
-        email: '${register_user.email}_test',       // Set email without displaying it in an input
+        full_name: register_user.fullName, // Pre-fill the fullName from register_user
+        email: register_user.email,       // Set email without displaying it in an input
         password: register_user.password, // Set password without displaying it in an input
       }));
     }
@@ -47,46 +87,123 @@ export default function AgentRegistrationScreen({ navigation }) {
 
   const validateInputs = () => {
     const newErrors = {};
-    if (!agentData.fullName) newErrors.fullName = "Full Name is required";
-    if (!agentData.licenseNumber) newErrors.licenseNumber = "License Number is required";
+    if (!agentData.full_name) newErrors.full_name = "Full Name is required";
+    if (!agentData.license_number) newErrors.license_number = "License Number is required";
     if (!agentData.address) newErrors.address = "Address is required";
     if (!agentData.coverage) newErrors.coverage = "Coverage is required";
-    if (!agentData.propertyType) newErrors.propertyType = "Type is required";
+    if (!agentData.property_type) newErrors.property_type = "Type is required";
     if (company === null) Alert.alert('Error', 'Please select if you are with a company');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0 && company !== null;
   };
 
+  const checkLicenseNumberExists = async (licenseNumber) => {
+    try {
+      const response = await fetch(`${apiUrl}/agents`); // Replace with your actual API endpoint
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await response.json(); // Get the JSON data
+      const agents = data.agents; // Access the agents array from the response
+
+      // Ensure agents is an array before calling some
+      if (Array.isArray(agents)) {
+        return agents.some(agent => agent.license_number === licenseNumber);
+      } else {
+        console.error('Expected an array but got:', agents);
+        return false; // Return false if agents is not an array
+      }
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+      return false; // Assume the license number does not exist if there's an error
+    }
+  };
+
   const handleSubmit = async () => {
+    console.log('handle submit called');
+    console.log('Current agentData:', agentData);
     if (!validateInputs()) return;
-  
-    const [firstName, ...lastNameParts] = agentData.fullName.split(' ');
+
+    // Check if the license number already exists
+    const licenseExists = await checkLicenseNumberExists(agentData.license_number);
+    if (licenseExists) {
+      setErrors((prevErrors) => ({ ...prevErrors, license_number: "License number already exists." }));
+      return;
+    }
+
+    // Normalize coverage and property type for validation
+    const currentCoverage = agentData.coverage.split(',').map(item => item.trim().toLowerCase());
+    const currentPropertyType = agentData.property_type.split(',').map(item => item.trim().toLowerCase());
+
+    // Additional validation for coverage and property type
+    const validCoverage = currentCoverage.every(value => ['rural', 'suburban', 'urban'].includes(value));
+    const validPropertyType = currentPropertyType.every(value => ['house', 'townhouse', 'unit', 'land'].includes(value));
+
+    if (!validCoverage) {
+      setErrors((prevErrors) => ({ ...prevErrors, coverage: "Coverage must be one of: rural, suburban, urban." }));
+      console.log('Coverage validation failed');
+      return;
+    }
+
+    if (!validPropertyType) {
+      setErrors((prevErrors) => ({ ...prevErrors, property_type: "Property Type must be one of: house, townhouse, unit, land." }));
+      console.log('Property type validation failed');
+      return;
+    }
+
+
+    const [firstName, ...lastNameParts] = agentData.full_name.split(' ');
     const lastName = lastNameParts.join(' ');
     const agentInfo = {
-      first_name: firstName,
-      last_name: lastName,
-      email: register_user.email,
-      password: register_user.password,
-      license_number: agentData.licenseNumber,
+      //first_name: firstName,
+      //last_name: lastName,
+      //email: register_user.email,
+      //password: register_user.password,
+      user_id: register_user.id, // Add the user_id from the registered user
+      license_number: agentData.license_number,
       address: agentData.address,
       coverage: agentData.coverage,
-      property_type: agentData.propertyType,
-      with_company: agentData.withCompany,
-      companyName: '',
-      noofLocation: '',
-      companyAddress: '',
-      companyCoverage: '',
-      companyPropertyType: '',
+      property_type: agentData.property_type,
+      with_company: agentData.with_company,
+      company_name: '',
+      no_of_location: '',
+      company_address: '',
+      company_property_coverage: '',
+      company_property_type: '',
     };
-    
-    if (agentData.withCompany) {
+
+    if (agentInfo.with_company === true && !errors.license_number) {
+      console.log('Navigating to CompanyDetailsScreen with agentInfo:', agentInfo);
       navigation.navigate('CompanyDetailsScreen', { agentInfo });
     } else {
       try {
-        await register.registerAgent(agentInfo);
-        navigation.navigate('AgentRegistrationSuccess');
+        console.log('Attempting to register agent:', agentInfo);
+        const response = await register.registerAgent(agentInfo);
+        console.log('Registration response:', response);
+
+        if (response && response.status === "success") {
+          console.log('Registration successful, navigating to AgentRegistrationSuccess');
+          navigation.navigate('AgentRegistrationSuccess');
+        } else if (response && response.message === "The email has already been taken.") {
+          // If the email exists but it's the same as the registered user, proceed
+          if (register_user && register_user.email === agentInfo.email) {
+            console.log('Using existing user account for agent registration');
+            navigation.navigate('AgentRegistrationSuccess');
+          } else {
+            setErrors((prevErrors) => ({ 
+              ...prevErrors, 
+              registration: 'An error occurred during registration.' 
+            }));
+          }
+        } else {
+          setErrors((prevErrors) => ({ 
+            ...prevErrors, 
+            registration: response?.message || 'An error occurred during registration.' 
+          }));
+        }
       } catch (error) {
-        handleErrors(error);
+        console.error('Registration error:', error);
+        Alert.alert('Registration Error', error.message || 'An error occurred while registering. Please try again.');
       }
     }
   };
@@ -107,7 +224,7 @@ export default function AgentRegistrationScreen({ navigation }) {
   
         // Optionally, you can check for other common error phrases and set the relevant errors
         if (errorMessage.includes('license number')) {
-          newErrors.licenseNumber = 'License number is required or already taken.';
+          newErrors.license_number = 'License number is required or already taken.';
         }
         if (errorMessage.includes('address')) {
           newErrors.address = 'Address is required or already in use.';
@@ -116,17 +233,17 @@ export default function AgentRegistrationScreen({ navigation }) {
           newErrors.coverage = 'Coverage is required.';
         }
         if (errorMessage.includes('property type')) {
-          newErrors.propertyType = 'Property type is required.';
+          newErrors.property_type = 'Property type is required.';
         }
       }
   
       // Handling specific field-level errors in the errorData (in case of field validation errors)
       if (errorData.errors) {
         if (errorData.errors.email) newErrors.email = errorData.errors.email.join(' ');
-        if (errorData.errors.license_number) newErrors.licenseNumber = errorData.errors.license_number.join(' ');
+        if (errorData.errors.license_number) newErrors.license_number = errorData.errors.license_number.join(' ');
         if (errorData.errors.address) newErrors.address = errorData.errors.address.join(' ');
         if (errorData.errors.coverage) newErrors.coverage = errorData.errors.coverage.join(' ');
-        if (errorData.errors.property_type) newErrors.propertyType = errorData.errors.property_type.join(' ');
+        if (errorData.errors.property_type) newErrors.property_type = errorData.errors.property_type.join(' ');
       }
   
       setErrors(newErrors);
@@ -154,10 +271,10 @@ export default function AgentRegistrationScreen({ navigation }) {
       <TextInput
         label="Full Name"
         returnKeyType="next"
-        value={agentData.fullName}
-        onChangeText={(text) => setAgentData((prevData) => ({ ...prevData, fullName: text }))}
-        error={!!errors.fullName}
-        errorText={errors.fullName}
+        value={agentData.full_name}
+        onChangeText={(text) => setAgentData((prevData) => ({ ...prevData, full_name: text }))}
+        error={!!errors.full_name}
+        errorText={errors.full_name}
         style={styles.input}
       />
   
@@ -165,12 +282,13 @@ export default function AgentRegistrationScreen({ navigation }) {
       <TextInput
         label="License Number"
         returnKeyType="next"
-        value={agentData.licenseNumber}
-        onChangeText={(text) => setAgentData((prevData) => ({ ...prevData, licenseNumber: text }))}
-        error={!!errors.licenseNumber}
-        errorText={errors.licenseNumber}
+        value={agentData.license_number}
+        onChangeText={(text) => setAgentData((prevData) => ({ ...prevData, license_number: text }))}
+        error={!!errors.license_number || !!errors.registration}
+        errorText={errors.license_number || errors.registration}
         style={styles.input}
       />
+
   
       {/* Address Input */}
       <TextInput
@@ -184,42 +302,88 @@ export default function AgentRegistrationScreen({ navigation }) {
       />
   
       {/* Coverage Area Input */}
-      <TextInput
-        label="Coverage"
-        returnKeyType="next"
-        value={agentData.coverage}
-        onChangeText={(text) => setAgentData((prevData) => ({ ...prevData, coverage: text }))}
-        error={!!errors.coverage}
-        errorText={errors.coverage}
-        style={styles.input}
-      />
-      <Text style={styles.exampleText}>Example: rural, suburban, urban.</Text>
+      <View style={styles.coverageContainer}>
+        <Text style={styles.label}>Coverage</Text>
+        <View style={styles.coverageOptions}>
+          {coverageOptions.map((option) => (
+            <TouchableOpacity 
+              key={option} 
+              onPress={() => handleCoverageSelect(option)} 
+              style={[
+                styles.coverageOptionButton,
+                agentData.coverage.split(',').map(item => item.trim()).includes(option) && styles.selectedCoverageOption
+              ]}
+            >
+              <Text style={[
+                styles.optionText,
+                agentData.coverage.split(',').map(item => item.trim()).includes(option) && styles.selectedText
+              ]}>{option}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={styles.selectedText}>Selected Coverage: {agentData.coverage}</Text>
+        {errors.coverage && <Text style={styles.errorText}>{errors.coverage}</Text>}
+      </View>
   
       {/* Property Type Input */}
-      <TextInput
-        label="Type"
-        returnKeyType="next"
-        value={agentData.propertyType}
-        onChangeText={(text) => setAgentData((prevData) => ({ ...prevData, propertyType: text }))}
-        error={!!errors.propertyType}
-        errorText={errors.propertyType}
-        style={styles.input}
-      />
-      <Text style={styles.exampleText}>Example: house, townhouse, unit, land.</Text>
+      <View style={styles.propertyTypeContainer}>
+        <Text style={styles.label}>Property Type</Text>
+        <View style={styles.propertyTypeOptionsContainer}>
+          <View style={styles.propertyTypeRow}>
+            {propertyTypeOptions.slice(0, 2).map((option) => (
+              <TouchableOpacity 
+                key={option} 
+                onPress={() => handlePropertyTypeSelect(option)} 
+                style={[
+                  styles.propertyTypeOptionButton,
+                  agentData.property_type.split(',').map(item => item.trim()).includes(option) && styles.selectedPropertyTypeOption
+                ]}
+              >
+                <Text style={[
+                  styles.optionText,
+                  agentData.property_type.split(',').map(item => item.trim()).includes(option) && styles.selectedText
+                ]}>{option}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.propertyTypeRow}>
+            {propertyTypeOptions.slice(2, 4).map((option) => (
+              <TouchableOpacity 
+                key={option} 
+                onPress={() => handlePropertyTypeSelect(option)} 
+                style={[
+                  styles.propertyTypeOptionButton,
+                  agentData.property_type.split(',').map(item => item.trim()).includes(option) && styles.selectedPropertyTypeOption
+                ]}
+              >
+                <Text style={[
+                  styles.optionText,
+                  agentData.property_type.split(',').map(item => item.trim()).includes(option) && styles.selectedText
+                ]}>{option}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+        <Text style={styles.selectedText}>Selected Property Type: {agentData.property_type}</Text>
+        {errors.property_type && <Text style={styles.errorText}>{errors.property_type}</Text>}
+      </View>
   
       {/* Company Selection */}
       <Text style={styles.companyText}>Are you with a company?</Text>
       <View style={styles.buttonGroup}>
         <TouchableOpacity
           onPress={() => {
-            setCompany("Yes");
-            setAgentData((prevData) => ({ ...prevData, withCompany: true }));
-            console.log(agentData.withCompany); // Log the current state
+            if (company !== "Yes") { // Check if the button is already selected
+              setAgentData((prevData) => ({ ...prevData, with_company: true }));
+              setCompany("Yes");
+              console.log(agentData.with_company); // Log the current state
+            }
           }}
           style={[
             styles.optionButton,
             company === "Yes" && styles.selectedButton,
           ]}
+          disabled={company === "Yes"} // Disable button if already selected
         >
           <Text
             style={[
@@ -233,14 +397,17 @@ export default function AgentRegistrationScreen({ navigation }) {
   
         <TouchableOpacity
           onPress={() => {
-            setCompany("No");
-            setAgentData((prevData) => ({ ...prevData, withCompany: false }));
-            console.log(agentData.withCompany); // Log the current state
+            if (company !== "No") { // Check if the button is already selected
+              setAgentData((prevData) => ({ ...prevData, with_company: false }));
+              setCompany("No");
+              console.log(agentData.with_company); // Log the current state
+            }
           }}
           style={[
             styles.optionButton,
             company === "No" && styles.selectedButton,
           ]}
+          disabled={company === "No"} // Disable button if already selected
         >
           <Text
             style={[
@@ -310,6 +477,7 @@ const styles = StyleSheet.create({
   },
   optionText: {
     color: '#FFFFFF',
+    fontSize: 16,
   },
   selectedButton: {
     backgroundColor: "#FFFFFF", // Change background when selected
@@ -332,5 +500,63 @@ const styles = StyleSheet.create({
     top: 40,
     left: 30,
     //paddingTop: 20
+  },
+  coverageOptionButton: {
+    borderWidth: 2,
+    borderColor: "#7B61FF",
+    backgroundColor: "#7B61FF",
+    borderRadius: 20,
+    paddingVertical: 12,
+    //paddingHorizontal: 24,
+    marginVertical: 8,
+    alignItems: "center",
+    justifyContent: 'center',
+    width: '30%'
+  },
+  propertyTypeOptionButton: {
+    borderWidth: 2,
+    borderColor: "#7B61FF",
+    backgroundColor: "#7B61FF",
+    borderRadius: 20,
+    paddingVertical: 12,
+    //paddingHorizontal: 24,
+    marginVertical: 8,
+    alignItems: "center",
+    justifyContent: 'center',
+    width: '50%'
+  },
+  coverageContainer: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  coverageOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  propertyTypeContainer: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  propertyTypeOptionsContainer: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  propertyTypeRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  selectedCoverageOption: {
+    backgroundColor: "#FFFFFF", // Change background when selected
+    borderColor: "#7B61FF", // Keep border consistent
+  },
+  selectedPropertyTypeOption: {
+    backgroundColor: "#FFFFFF", // Change background when selected
+    borderColor: "#7B61FF", // Keep border consistent
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    marginTop: 5,
   },
 });

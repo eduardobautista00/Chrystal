@@ -43,8 +43,9 @@ export default function PhoneInput({ phone, setPhone, error, description  }) {
     ];
 
     const handlePhoneChange = (text) => {
-        const fullValue = `${phone.countryCode}${text}`;
-            console.log('Full Phone Value:', fullValue);
+        // Ensure phone object has a countryCode
+        const fullValue = `${phone.countryCode || '+63'}${text}`; // Default to empty string if countryCode is undefined
+        console.log('Full Phone Value:', fullValue);
         // Update the phone value and also the combined value
         setPhone({
             ...phone,
@@ -61,7 +62,7 @@ export default function PhoneInput({ phone, setPhone, error, description  }) {
                         onValueChange={(value) => {
                             const fullValue = `${value}${phone.value}`; // Update fullValue when country code changes
                             console.log('Country Code Selected:', value); // Log the selected country code
-                            console.log('Full Phone Value:', fullValue); // Log the full value after country code change
+                            console.log('Full Phone Values:', fullValue); // Log the full value after country code change
 
                             setPhone({
                                 ...phone,

@@ -67,7 +67,7 @@ export default function AddPropertyCustomInputs({
           >
             <Picker.Item label="$" value="USD" />
             <Picker.Item label="€" value="EUR" />
-            <Picker.Item label="¥" value="YEN" />
+            <Picker.Item label="¥" value="JPY" />
           </Picker>
         </View>
         <PaperTextInput

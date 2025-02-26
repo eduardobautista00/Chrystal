@@ -12,30 +12,42 @@ export const registerStateReducer = (state, action) => {
     switch (action.type) {
         case 'REGISTER_REQUEST':
             return {
-            ...state,
-            isLoading: true,
-            error: null, // Reset errors before new registration attempt
+                ...state,
+                isLoading: true,
+                error: null,
             };
-  
-            case 'REGISTER_SUCCESS':
-                console.log('Registration Payload:', action.payload);  // Log the entire payload
-                const user = action.payload || {};  // Ensure user is defined
-                const fullName = `${user.first_name || 'N/A'} ${user.last_name || 'N/A'}`;  // Safeguard against undefined
-                const email = user.email;
-                console.log('Full Name:', fullName);  // Log the full name
-                console.log('email:', email + "test");
-                return {
-                    ...state,
-                    isLoading: false,
-                    isRegistered: true,
-                    register_user: {
-                        ...user,
-                        fullName,
-                        email,
-                    },
-                    permissions: action.payload.permissions || [],
+
+        case 'REGISTER_SUCCESS':
+            console.log('Registration Payload:', action.payload);
+            // Handle both user and agent registration responses
+            const responseData = action.payload || {};
+            let userData = {};
+
+            if (responseData.agent) {
+                // Handle agent registration response
+                userData = {
+                    ...responseData.agent,
+                    fullName: state.register_user?.fullName || 'N/A',
+                    email: state.register_user?.email || 'N/A',
                 };
-            
+            } else {
+                // Handle user registration response
+                const user = responseData.user || responseData || {};
+                userData = {
+                    ...user,
+                    fullName: `${user.first_name || 'N/A'} ${user.last_name || 'N/A'}`,
+                    email: user.email || 'N/A',
+                };
+            }
+
+            return {
+                ...state,
+                isLoading: false,
+                isRegistered: true,
+                register_user: userData,
+                permissions: responseData.permissions || [],
+            };
+
         case 'REGISTER_AGENT':
             // Add agent registration state management here
             return {
@@ -45,9 +57,9 @@ export const registerStateReducer = (state, action) => {
   
         case 'REGISTER_FAILURE':
             return {
-            ...state,
-            isLoading: false,
-            error: action.error, // Store error message
+                ...state,
+                isLoading: false,
+                error: action.error,
             };
   
         default:

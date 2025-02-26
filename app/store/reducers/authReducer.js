@@ -59,11 +59,14 @@ export const initialState = {
         return {
           ...state,
           isLoading: false,
-          user: action.payload.user,
+          user: {
+            ...action.payload.user,
+            access_token: action.payload.access_token
+          },
           isAuthenticated: true,
-          rolePermission: action.payload.permission ,
-          role: action.payload.user.role_name ,
-          token : action.payload.token,
+          rolePermission: action.payload.permission,
+          role: action.payload.user.role_name,
+          token: action.payload.access_token,
           error: null,
         };
       case FAKE_LOGIN_SUCCESS:
@@ -71,10 +74,13 @@ export const initialState = {
           ...state,
           isLoading: false,
           isAuthenticated: true,
-          user: fake_user,
-          rolePermission: fake_user.roles[0].permission ,
-          role: fake_user.roles[0].role_name ,
-          token : "53QYuA9EYHcAyBOxw1zKXTGBzbRApy0wcQrdVuomOY8gYevr9bb7581mIJ8m5XgM",
+          user: {
+            ...fake_user,
+            access_token: "53QYuA9EYHcAyBOxw1zKXTGBzbRApy0wcQrdVuomOY8gYevr9bb7581mIJ8m5XgM"
+          },
+          rolePermission: fake_user.roles[0].permission,
+          role: fake_user.roles[0].role_name,
+          token: "53QYuA9EYHcAyBOxw1zKXTGBzbRApy0wcQrdVuomOY8gYevr9bb7581mIJ8m5XgM",
           error: null
         };
         // case REGISTER_SUCCESS:

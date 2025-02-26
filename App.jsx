@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Provider } from "react-native-paper";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
@@ -7,8 +7,19 @@ import { DataContextProvider } from './app/context/DataContext';
 import Navigation from './app/navigation/AppNavigator';
 import { theme } from "./app/core/theme";
 import { navigationRef } from './app/navigation/NavigationService';
+import { checkAuthStatus } from './app/utils/authUtils';
 
 export default function App() {
+  // useEffect(() => {
+  //   const checkAuth = async () => {
+  //     // Wait for navigation to be ready
+  //     setTimeout(async () => {
+  //       await checkAuthStatus(navigationRef.current);
+  //     }, 100);
+  //   };
+  //   checkAuth();
+  // }, []);
+
   return (
     <Provider theme={theme}>
       <SafeAreaProvider>

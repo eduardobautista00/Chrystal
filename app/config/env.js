@@ -3,19 +3,44 @@ import Constants from 'expo-constants';
 const ENV = {
   dev: {
     apiUrl: 'https://chrystal.seqinstitute.com/api',
-    googleMapsApiKey: 'AIzaSyAr9kfNHZVPuF9UelpQ-Vnu6F4jyCbuzYY',
+    googleMapsApiKey: 'AIzaSyBs7Kfc_ulsMGoNn30Ty6eepRg8oshQoAg',
     oneSignalAppId: 'your_dev_onesignal_app_id',
+    firebaseConfig: {
+      apiKey: "AIzaSyB5L2U53ETPXvJvTkXFxnqu69Kz7P5y--k",
+      authDomain: "chrystal-notif.firebaseapp.com",
+      projectId: "chrystal-notif",
+      storageBucket: "chrystal-notif.firebasestorage.app",
+      messagingSenderId: "920742407565",
+      appId: "1:920742407565:android:2ecdb166da8f3dd3ad21c4"
+    }
   },
   staging: {
     apiUrl: 'https://chrystal.seqinstitute.com/api',
-    googleMapsApiKey: 'AIzaSyAr9kfNHZVPuF9UelpQ-Vnu6F4jyCbuzYY',
+    googleMapsApiKey: 'AIzaSyBs7Kfc_ulsMGoNn30Ty6eepRg8oshQoAg',
     oneSignalAppId: 'your_staging_onesignal_app_id',
+    firebaseConfig: {
+      apiKey: "AIzaSyB5L2U53ETPXvJvTkXFxnqu69Kz7P5y--k",
+      authDomain: "chrystal-notif.firebaseapp.com",
+      projectId: "chrystal-notif",
+      storageBucket: "chrystal-notif.firebasestorage.app",
+      messagingSenderId: "920742407565",
+      appId: "1:920742407565:android:2ecdb166da8f3dd3ad21c4"
+    }
   },
   prod: {
     apiUrl: 'https://chrystal.seqinstitute.com/api',
-    googleMapsApiKey: 'AIzaSyAr9kfNHZVPuF9UelpQ-Vnu6F4jyCbuzYY',
+    googleMapsApiKey: 'AIzaSyBs7Kfc_ulsMGoNn30Ty6eepRg8oshQoAg',
     oneSignalAppId: 'your_prod_onesignal_app_id',
+    firebaseConfig: {
+      apiKey: "AIzaSyB5L2U53ETPXvJvTkXFxnqu69Kz7P5y--k",
+      authDomain: "chrystal-notif.firebaseapp.com",
+      projectId: "chrystal-notif",
+      storageBucket: "chrystal-notif.firebasestorage.app",
+      messagingSenderId: "920742407565",
+      appId: "1:920742407565:android:2ecdb166da8f3dd3ad21c4"
+    }
   },
+  
 };
 
 const getEnvVars = (env = "staging") => {

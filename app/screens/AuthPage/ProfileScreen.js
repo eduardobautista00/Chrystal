@@ -4,10 +4,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import ProfileHeader from '../../components/ProfileHeader';
 import StatsCard from '../../components/ProfileStatsCard';
 import PropertyList from '../../components/ProfilePropertyList';
-import BackButton from '../../components/BackButton';
+import BackButton from '../../components/ProfileBackButton';
 import AnimatedBackground from "../../components/AnimatedBackground";
 import BottomNavigation from '../../components/BottomNavigation';
-
 
 const ProfileScreen = ({ navigation }) => {
   return (
@@ -20,7 +19,7 @@ const ProfileScreen = ({ navigation }) => {
       >
         <View style={styles.backButtonContainer}>
           <View style={styles.button}>
-            <BackButton goBack={navigation.goBack} />
+            <BackButton navigation={navigation} />
           </View>
           <Text style={styles.title}>My Profile</Text>
         </View>

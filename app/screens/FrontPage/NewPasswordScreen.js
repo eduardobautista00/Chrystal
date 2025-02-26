@@ -16,6 +16,7 @@ export default function NewPasswordScreen({ route, navigation }) {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [error, setError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const { email, otpValue } = route.params;
   const { resetPassword } = useData();
 
@@ -24,15 +25,21 @@ export default function NewPasswordScreen({ route, navigation }) {
   
   const handleSubmit = async () => {
     setError(''); // Reset any previous error
+    setConfirmPasswordError(''); // Reset confirm password error
 
     // Validate passwords
+    if (password.value.length === 0) {
+      setError('Password cannot be empty.');
+      return;
+    }
+
     if (password.value.length < 6) {
       setError('Password must be at least 6 characters long.');
       return;
     }
 
     if (password.value !== password_confirmation.value) {
-      setError('Passwords do not match.');
+      setConfirmPasswordError('Passwords do not match.');
       return;
     }
 
@@ -87,6 +94,8 @@ export default function NewPasswordScreen({ route, navigation }) {
           onChangeText={(text) => setNewPassword({ value: text, error: '' })}
           style={styles.input}
           error={!!error}
+          errorText={error}
+
           right={
             <TouchableOpacity onPress={() => setPasswordVisible(!passwordVisible)}>
               <Icon
@@ -104,7 +113,8 @@ export default function NewPasswordScreen({ route, navigation }) {
           value={password_confirmation.value}
           onChangeText={(text) => setConfirmPassword({ value: text, error: '' })}
           style={styles.input}
-          error={!!error}
+          error={!!confirmPasswordError}
+          errorText={confirmPasswordError}
           right={
             <TouchableOpacity onPress={() => setConfirmPasswordVisible(!confirmPasswordVisible)}>
               <Icon
@@ -118,7 +128,7 @@ export default function NewPasswordScreen({ route, navigation }) {
         />
 
         {/* Error Message */}
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {/*error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         {/* Submit Button */}
         <Button mode="contained" onPress={handleSubmit} style={styles.button}>

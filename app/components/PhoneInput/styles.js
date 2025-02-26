@@ -21,6 +21,8 @@ const styles = StyleSheet.create({
 countryCodePicker: {
   flex: 0.35, // 30% width
   paddingHorizontal: 5,
+  height: 63,
+  justifyContent: 'center',
 },
 phoneNumberContainer: {
   flex: 0.7, // 70% width
@@ -45,8 +47,12 @@ phoneNumberInput: {
     borderColor: theme.colors.error,
 },
 errorText: {
-    marginVertical: 10,
+    //marginVertical: 10,
     color: theme.colors.error,
+    //justifyContent: 'center',
+    alignSelf: 'center',
+    marginLeft: 65,
+    
 },
 });
 

@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import 'react-native-gesture-handler';
 
 import { createStackNavigator } from "@react-navigation/stack";
@@ -8,6 +8,9 @@ import DrawerButton from "../components/DrawerButton";
 import screens from "../../app/screens";
 import AboutNavigation from "./SubNavigator/AboutNavigation";
 import { Ionicons } from '@expo/vector-icons';
+import { checkAuthStatus } from '../../app/utils/authUtils';
+import { navigationRef } from '../navigation/NavigationService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // import { ROUTES, SCREEN_NAMES } from '../config/routes';
 const Stack = createStackNavigator();
@@ -47,125 +50,80 @@ const {
 
 } = screens;
 
-function AuthStack() {
-    const { authState } = useAuth();
-    console.log("auth user:", authState)
+// Define AuthStack as a separate component
+const AuthStack = () => {
+    const { authState, isRole, hasCan } = useAuth();  // Get functions from context
+    console.log("auth user:", authState);
+    console.log("role permissions:", authState.rolePermission);
 
     return (
         <Stack.Navigator
             initialRouteName={"DashboardScreen"}
             screenOptions={({ navigation }) => ({
                 headerLeft: () => <DrawerButton navigation={navigation} />,
-                headerShown: false, // Globally hide headers
-                
+                headerShown: false,
             })}
             headerMode="none"
         >
-            <Stack.Screen name={"DashboardScreen"} options={{ title: 'Dashboard', headerShown: false,}} component={AuthPage_DashboardScreen} />
+            <Stack.Screen 
+                name={"DashboardScreen"} 
+                options={{ title: 'Dashboard', headerShown: false }} 
+                component={AuthPage_DashboardScreen} />
 
-            {(authState.isRole("Agent") || authState.isRole("Admin")) && (
-                <Stack.Screen name={"ProfileScreen"} options={{title:"Profile", headerShown: false,}}>
-                    {/* Inline Sub Navigator */}
-                    {() => (
-                        <Tab.Navigator screenOptions={{
-                            headerShown: false, // Ensure headers don't reserve space
-                            tabBarStyle: { display: 'none' }, // Hide tab bar globally if needed
-                        }}>
-                            <Tab.Screen name='AuthPage_ProfileScreen' component={AuthPage_ProfileScreen}
-                                options={{
-                                    tabBarLabel: 'Profile',
-                                    headerShown: false,
-                                    tabBarStyle: { display: 'none' },
-                                    tabBarIcon: ({ color, size }) => (
-                                        <Ionicons name="person" color={color} size={size} />
-                                    ),
-                                }}
-                            />
-                            <Tab.Screen name='AuthPage_PropertiesScreen' component={AuthPage_PropertiesScreen}
-                                options={{
-                                    tabBarLabel: 'Properties',
-                                    tabBarIcon: ({ color, size }) => (
-                                        <Ionicons name="home" color={color} size={size} />
-                                    ),
-                                }}
-                            />
-                            <Tab.Screen name='AuthPage_AddPropertyImage' component={AuthPage_AddPropertyImage}
-                                options={{
-                                    tabBarLabel: 'Add Property Images',
-                                    headerShown: false,
-                                    tabBarStyle: { display: 'none' }, // Hide the tab item in the tab bar
-                                    tabBarIcon: ({ color, size }) => (
-                                        <Ionicons name="images" color={color} size={size} />
-                                    ),
-                                   
-                                }}
-                            />
-                            <Tab.Screen name='AuthPage_AddPropertiesScreen' component={AuthPage_AddPropertiesScreen}
-                                options={{
-                                    tabBarLabel: 'Add Properties',
-                                    headerShown: false,
-                                    tabBarStyle: { display: 'none' },
-                                    tabBarIcon: ({ color, size }) => (
-                                        <Ionicons name="add" color={color} size={size} />
-                                    ),
-                                }}
-                            />
-                            <Tab.Screen name='AuthPage_PropertyDetails' component={AuthPage_PropertyDetails}
-                                options={{
-                                    tabBarLabel: 'Property Details',
-                                    headerShown: false,
-                                    tabBarStyle: { display: 'none' },
-                                    tabBarIcon: ({ color, size }) => (
-                                        <Ionicons name="home" color={color} size={size} />
-                                    ),
-                                }}
-                            />
-                            <Tab.Screen name='AuthPage_CalendarScreen' component={AuthPage_CalendarScreen}
-                                options={{
-                                    tabBarLabel: 'Calendar',
-                                    headerShown: false,
-                                    tabBarStyle: { display: 'none' },
-                                    tabBarIcon: ({ color, size }) => (
-                                        <Ionicons name="calendar" color={color} size={size} />
-                                    ),
-                                }}
-                            />
-                            <Tab.Screen name='AuthPage_NotificationScreen' component={AuthPage_NotificationScreen}
-                                options={{
-                                    tabBarLabel: 'Notifications',
-                                    headerShown: false,
-                                    tabBarStyle: { display: 'none' },
-                                    tabBarIcon: ({ color, size }) => (
-                                        <Ionicons name="notifications" color={color} size={size} />
-                                    ),
-                                }}
-                            />
-                            <Tab.Screen name='AuthPage_SettingsScreen' component={AuthPage_SettingsScreen}
-                                options={{
-                                    tabBarLabel: 'Settings',
-                                    headerShown: false,
-                                    tabBarStyle: { display: 'none' },
-                                    tabBarIcon: ({ color, size }) => (
-                                        <Ionicons name="settings" color={color} size={size} />
-                                    ),
-                                }}
-                            />
-                            <Tab.Screen name='AuthPage_StatisticsScreen' component={AuthPage_StatisticsScreen}
-                                options={{
-                                    tabBarLabel: 'Statistics',
-                                    headerShown: false,
-                                    tabBarStyle: { display: 'none' },
-                                    tabBarIcon: ({ color, size }) => (
-                                        <Ionicons name="bar-chart" color={color} size={size} />
-                                    ),
-                                }}
-                            />
-                        </Tab.Navigator>
-                    )}
-                </Stack.Screen>
+            <Stack.Screen
+                name={"ProfileScreen"}
+                options={{ title: "Profile", headerShown: false }}
+                component={AuthPage_ProfileScreen} />
+
+            <Stack.Screen
+                name={"PropertiesScreen"}
+                options={{ title: "Properties", headerShown: false }}
+                component={AuthPage_PropertiesScreen} />
+
+            <Stack.Screen
+                name={"AddPropertiesScreen"}
+                options={{ title: "Add Properties", headerShown: false }}
+                component={AuthPage_AddPropertiesScreen} />
+
+            <Stack.Screen
+                name={"AddPropertyImage"}
+                options={{ title: "Add Property Image", headerShown: false }}
+                component={AuthPage_AddPropertyImage} />
+
+            <Stack.Screen
+                name={"PropertyDetails"}
+                options={{ title: "Property Details", headerShown: false }}
+                component={AuthPage_PropertyDetails} />
+
+            <Stack.Screen
+                name={"CalendarScreen"}
+                options={{ title: "Calendar", headerShown: false }}
+                component={AuthPage_CalendarScreen} />
+
+            <Stack.Screen
+                name={"NotificationScreen"}
+                options={{ title: "Notification", headerShown: false }}
+                component={AuthPage_NotificationScreen} />
+
+            <Stack.Screen
+                name={"StatisticsScreen"}
+                options={{ title: "Statistics", headerShown: false }}
+                component={AuthPage_StatisticsScreen} />
+
+            <Stack.Screen
+                name={"SettingsScreen"}
+                options={{ title: "Settings", headerShown: false }}
+                component={AuthPage_SettingsScreen} />
+
+            {hasCan("View Users") && (
+                <Stack.Screen 
+                    name={"UsersScreen"} 
+                    options={{title:"Users", headerShown: false}}
+                    component={UsersScreen}
+                />
             )}
-
-            {authState.hasCan("update-user") &&
+            
+            {hasCan("update-user") &&
                 <Stack.Screen
                     name={"AboutUsScreen"}
                     options={{
@@ -176,7 +134,7 @@ function AuthStack() {
             }
         </Stack.Navigator>
     );
-}
+};
 
 function AppStack() {
     return (
@@ -207,11 +165,48 @@ function AppStack() {
     );
 }
 
+// Main Navigation component
 export default function Navigation() {
-    const { authState } = useAuth();
+    const { authState, setAuthenticated } = useAuth();
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                console.log('Checking auth state...');
+                const token = await AsyncStorage.getItem('access_token');
+                console.log('access_token:', token);
+                
+                if (token && token.split('.').length === 3) {
+                    console.log('Token is valid, setting authenticated state');
+                    await setAuthenticated(token);
+                    console.log('Auth state after update:', authState);
+                } else {
+                    console.log('Token is invalid or missing');
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+            }
+        };
+        
+        checkAuth();
+    }, []);
+
+    // Add this console log to track auth state changes
+    useEffect(() => {
+        console.log('Auth state changed:', authState);
+    }, [authState]);
+
+    console.log('Rendering Navigation, isAuthenticated:', authState.isAuthenticated);
+
     return (
         <>
-            {authState.isAuthenticated ? <AuthStack/> : <AppStack />}
+        {authState.isAuthenticated === true ? (
+            console.log('Rendering AuthStack'),
+            <AuthStack />  // Use the AuthStack component
+            ) : (
+                console.log('Rendering AppStack'),
+                <AppStack />
+            )}
         </>
     );
 }

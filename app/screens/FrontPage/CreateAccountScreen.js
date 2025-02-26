@@ -1,5 +1,5 @@
 import React, { useState, useLayoutEffect  } from "react";
-import { TouchableOpacity, StyleSheet, View } from "react-native";
+import { TouchableOpacity, StyleSheet, View, Alert } from "react-native";
 import { Text, Checkbox } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import * as NavigationService from '../../navigation/NavigationService';
@@ -21,12 +21,12 @@ import { nameValidator } from "../../utils/nameValidator";
 import { phoneValidator } from "../../utils/phoneValidator";
 
 export default function CreateAccountScreen({ route, navigation }) {
-  const [firstName, setFirstName] = useState({ value: "sample", error: "" });
-  const [lastName, setLastName] = useState({ value: "sample", error: "" });
-  const [phone, setPhone] = useState({ countryCode: '+63', value: '9958115316', error: '', fullValue: '' });
-  const [email, setEmail] = useState({ value: "sample@gmail.com", error: "" });
-  const [password, setPassword] = useState({ value: "samplesample", error: "" });
-  const [confirmPassword, setConfirmPassword] = useState({ value: "samplesample", error: "" });
+  const [firstName, setFirstName] = useState({ value: "", error: "" });
+  const [lastName, setLastName] = useState({ value: "", error: "" });
+  const [phone, setPhone] = useState({ countryCode: '+63', value: '', error: '', fullValue: '' });
+  const [email, setEmail] = useState({ value: "", error: "" });
+  const [password, setPassword] = useState({ value: "", error: "" });
+  const [confirmPassword, setConfirmPassword] = useState({ value: "", error: "" });
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -96,43 +96,44 @@ export default function CreateAccountScreen({ route, navigation }) {
 
   const onSubmitPressed = async () => {
     if (!validateInputs()) return;
-  
+
     console.log("All validations passed. Proceeding to registration...");
-  
-    try {
-      const userInfo = {
+
+    const userInfo = {
         first_name: firstName.value,
         last_name: lastName.value,
-        email: email.value, 
+        email: email.value,
         phone_number: phone.fullValue,
-        password: password.value, 
+        password: password.value,
         password_confirmation: confirmPassword.value
-      };
-  
-      await registerUser(userInfo);
-      console.log("Agent registered successfully.");
-  
-      navigation.navigate('AgentRegistrationScreen');
-  
-      /*
-      const otpResponse = await sendOTP(phone.fullValue);
-      
-      if (!otpResponse.success) {
-        console.error("OTP Error:", otpResponse.error);
-        return;
-      }
-  
-      console.log("OTP sent successfully!");
-  
-      navigation.navigate('OTPVerificationScreen', {
-        messageId: otpResponse.messageId,
-        phone: phone.fullValue,
-        accountType,
-        otp: otpResponse.otp
-      });
-      */
+    };
+
+    try {
+        const response = await registerUser(userInfo);
+
+        // Ensure response is defined
+        if (!response) {
+            Alert.alert('Registration failed', 'An unknown error occurred');
+            return; // Exit if response is undefined
+        }
+
+        // Check for success based on the response structure
+        if (response.success || response.message === "User registered successfully") {
+            console.log("Agent registered successfully.");
+            navigation.navigate('AgentRegistrationScreen');
+        } else {
+            // Handle specific error messages
+            const errorMessage = response.message || 'An unknown error occurred';
+            Alert.alert('User already exists', errorMessage);
+            console.error("Registration error:", response.error);
+            // Prevent navigation if the email is already taken
+            if (response.message === "The email has already been taken.") {
+                return; // Exit the function to prevent navigation
+            }
+        }
     } catch (error) {
-      console.error("Registration error:", error);
+        console.error("Registration error:", error.message);
+        Alert.alert('Registration error', error.message);
     }
   };
 

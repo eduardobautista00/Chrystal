@@ -1,18 +1,20 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text } from "react-native";
 import { TextInput as PaperTextInput } from "react-native-paper";
 import { theme } from "../../core/theme";
 import styles from "./styles";
 
-export default function TextInput({ errorText, description, right, ...props }) {
+export default function TextInput({ errorText, description, right, variant, ...props }) {
+  const inputStyle = variant === 'map' ? styles.mapInput : styles.input;
+
   return (
     <View style={styles.container}>
       <PaperTextInput
-        style={styles.input}
+        style={inputStyle}
         selectionColor={theme.colors.primary}
         underlineColor="transparent"
         mode="outlined"
-        right={right ? <PaperTextInput.Icon icon={() => right} /> : null} // Render the icon properly
+        right={right ? <PaperTextInput.Icon icon={() => right} /> : null}
         {...props}
       />
       {description && !errorText ? (

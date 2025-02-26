@@ -13,12 +13,12 @@ const PropertyList = ({ navigation }) => {
 
   // Function to convert currency code to symbol
   const getCurrencySymbol = (currencyCode) => {
-    switch (currencyCode) {
+    switch (currencyCode.toUpperCase()) {
       case 'USD':
         return '$';
       case 'EUR':
         return '€';
-      case 'YEN':
+      case 'JPY':
         return '¥';
       default:
         return currencyCode; // Fallback to the code if no symbol is defined
@@ -35,7 +35,7 @@ const PropertyList = ({ navigation }) => {
   
         if (Array.isArray(data.property)) {
           const userProperties = data.property.filter(
-            (property) => property.user_id === authState.user.id
+            (property) => property.user_id === authState.user.id && property.status === 'available'
           );
           setProperties(userProperties);
         } else if (data.property && data.property.user_id === authState.user.id) {
@@ -69,9 +69,12 @@ const PropertyList = ({ navigation }) => {
     return (
       <TouchableOpacity
         style={styles.propertyItem}
-        onPress={() => navigation.navigate('AuthPage_PropertyDetails', { property: item })} // Pass property details to the next screen
+        onPress={() => navigation.navigate('PropertyDetails', { property: item })} // Pass property details to the next screen
       >
-        <Image source={{ uri: item.image_url || 'https://via.placeholder.com/100' }} style={styles.propertyImage} />
+        <Image 
+          source={{ uri: item.image_url ? item.image_url : 'https://dummyimage.com/100x100' }} 
+          style={styles.propertyImage} 
+        />
         <View style={styles.propertyInfo}>
           <Text style={styles.propertyPrice}>
             {getCurrencySymbol(item.currency)} {formattedPrice}
@@ -79,7 +82,9 @@ const PropertyList = ({ navigation }) => {
           <Text style={styles.propertyTitle}>{item.property_name}</Text>
           <View style={styles.addressContainer}>
             <Icon name="location-outline" size={16} color="#7B61FF" style={styles.addressIcon} />
-            <Text style={styles.propertyAddress}>{item.address}</Text>
+            <Text style={styles.propertyAddress} numberOfLines={2}>
+              {item.address && item.address.length > 30 ? `${item.address.substring(0, 28)}...` : item.address}
+            </Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -90,7 +95,7 @@ const PropertyList = ({ navigation }) => {
     <View style={styles.propertyListContainer}>
       <View style={styles.propertyListHeader}>
         <Text style={styles.propertyListHeadertext}>My Property List</Text>
-        <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AuthPage_AddPropertiesScreen')}>
+        <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AddPropertiesScreen')}>
           <Text style={styles.addButtonText}>+ Add Property</Text>
         </TouchableOpacity>
       </View>

@@ -66,6 +66,9 @@ const styles = StyleSheet.create({
   addressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    //borderWidth: 1,
+    paddingRight: 5,
+    overflow: 'hidden',
   },
   propertyAddress: {
     fontSize: 14,

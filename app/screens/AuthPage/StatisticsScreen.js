@@ -5,7 +5,7 @@ import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { Picker } from '@react-native-picker/picker';
 import ProfileHeader from '../../components/ProfileHeader';
 import StatsCard from '../../components/ProfileStatsCard';
-import BackButton from '../../components/BackButton';
+import BackButton from '../../components/ProfileBackButton';
 import BottomNavigation from '../../components/BottomNavigation';
 import { useAuth } from '../../context/AuthContext';
 import { Dimensions } from 'react-native';
@@ -31,7 +31,10 @@ const StatisticsScreen = ({ navigation }) => {
   const [firstSaleDate, setFirstSaleDate] = useState(null);
   const [agentData, setAgentData] = useState(null);
   const currentYear = new Date().getFullYear();
+  const [conversionRates, setConversionRates] = useState({ EUR: 1, JPY: 1 }); // New state for conversion rates
   const { apiUrl } = getEnvVars();
+
+  console.log("conversion ratesState", conversionRates);
 
   const fetchAgentData = async () => {
     try {
@@ -64,6 +67,26 @@ const StatisticsScreen = ({ navigation }) => {
     }
   };
 
+  const fetchConversionRates = async () => {
+    try {
+      const response = await fetch('https://api.frankfurter.app/latest?base=USD&symbols=EUR,JPY');
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversion rates');
+      }
+      const data = await response.json();
+      setConversionRates(data.rates); // Store conversion rates in state
+      console.log("conversion rates", data.rates);
+
+    } catch (error) {
+      console.error('Error fetching conversion rates:', error);
+    }
+  };
+  
+  // Call fetchConversionRates in useEffect
+  useEffect(() => {
+    fetchConversionRates(); // Fetch conversion rates on component mount
+  }, []);
+
   const pollSalesData = async () => {
     try {
         const response = await fetch(`${apiUrl}/agents`);
@@ -80,6 +103,17 @@ const StatisticsScreen = ({ navigation }) => {
             }
             const salesData = await salesResponse.json();
             console.log("sale:", salesData);
+
+            // Convert sales prices to USD immediately after fetching, only for JPY and EUR
+            const convertedSalesData = salesData.sold_properties.map(property => {
+                let priceInUSD = property.price; // Default to original price
+                if (property.currency === 'JPY') {
+                    priceInUSD = property.price / conversionRates.JPY; // Convert JPY to USD
+                } else if (property.currency === 'EUR') {
+                    priceInUSD = property.price / conversionRates.EUR; // Convert EUR to USD
+                }
+                return { ...property, price: priceInUSD }; // Replace the price with the converted price
+            });
 
             const processedSalesData = {
                 daily: {},
@@ -103,7 +137,7 @@ const StatisticsScreen = ({ navigation }) => {
             };
 
             // Loop through all sold properties to process sales data
-            salesData.sold_properties.forEach((property) => {
+            convertedSalesData.forEach((property) => {
                 const soldDate = new Date(property.sold_at);
                 const dayLabel = soldDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
                 const monthLabel = soldDate.toLocaleDateString("en-US", { month: "short", year: "numeric" }); // Format: "Jan 2024"
@@ -628,6 +662,17 @@ const pollAveSalesData = async () => {
           const avesalesData = await avesalesResponse.json();
           console.log("sale:", avesalesData);
 
+          // Convert sales prices to USD immediately after fetching, only for JPY and EUR
+          const convertedAveSalesData = avesalesData.sold_properties.map(property => {
+              let priceInUSD = property.price; // Default to original price
+              if (property.currency === 'JPY') {
+                  priceInUSD = property.price / conversionRates.JPY; // Convert JPY to USD
+              } else if (property.currency === 'EUR') {
+                  priceInUSD = property.price / conversionRates.EUR; // Convert EUR to USD
+              }
+              return { ...property, price: priceInUSD }; // Replace the price with the converted price
+          });
+
           const processedAveSalesData = {
               daily: {},
               monthly: {}, // Monthly data with weekly sales and average
@@ -643,7 +688,7 @@ const pollAveSalesData = async () => {
           };
 
           // Loop through all sold properties to process sales data
-          avesalesData.sold_properties.forEach((property) => {
+          convertedAveSalesData.forEach((property) => {
               const soldDate = new Date(property.sold_at);
               const dayLabel = soldDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
               const weekLabel = getWeekLabel(soldDate);
@@ -908,7 +953,7 @@ const renderWeeklyPieChart = () => {
       <PieChart
         data={modifiedPieData}
         width={Dimensions.get("window").width}
-        height={315}
+        height={270}
         chartConfig={{
           backgroundColor: "#e26a00",
           backgroundGradientFrom: "#fb8c00",
@@ -1049,14 +1094,14 @@ const renderMonthlyChart = () => {
           labels: monthLabels,
           datasets: [
             {
-              data: dataset1.map(value => Math.round(value)), // Round values to the nearest integer
+              data: dataset1.map(Math.round), // Remove decimal places
               label: selectedreportType.charAt(0).toUpperCase() + selectedreportType.slice(1), // Capitalize the label
               color: (opacity = 1) => dataset1Color.replace("1", opacity),
             },
           ],
         }}
         width={Dimensions.get("window").width - 0}
-        height={300}
+        height={250}
         chartConfig={barChartConfig}
         style={[styles.chart, { marginLeft: -75}]}
         verticalLabelRotation={-45}
@@ -1096,7 +1141,7 @@ const renderMonthlyChart = () => {
           legend,
         }}
         width={Dimensions.get("window").width - 0}
-        height={250}
+        height={210}
         chartConfig={{
           backgroundColor: "#ECEAFF",
           backgroundGradientFrom: "#ECEAFF",
@@ -1211,7 +1256,7 @@ const renderYearlyChart = () => {
           legend
         }}
         width={Dimensions.get("window").width - 0}
-        height={250}
+        height={210}
         chartConfig={{
           backgroundColor: "#ECEAFF",
           backgroundGradientFrom: "#ECEAFF",
@@ -1284,7 +1329,7 @@ const renderYearlyChart = () => {
         <PieChart
           data={pieData}
           width={Dimensions.get("window").width}
-          height={300}
+          height={270}
           chartConfig={{
             backgroundColor: "#ECEAFF",
             backgroundGradientFrom: "#ECEAFF",
@@ -1384,13 +1429,13 @@ const getRandomColor = () =>
           labels: daysInWeek,
           datasets: [
             {
-              data: metricData,
+              data: metricData.map(Math.round),
               label: selectedreportType.charAt(0).toUpperCase() + selectedreportType.slice(1), // Capitalize the label
             },
           ],
         }}
           width={Dimensions.get('window').width}
-          height={300}
+          height={250}
           chartConfig={barChartConfig}
           style={[styles.chart, { marginLeft: -75 }]}
           showValuesOnTopOfBars={true}
@@ -1456,7 +1501,7 @@ const getRandomColor = () =>
       >
         <View style={styles.backButtonContainer}>
           <View style={styles.button}>
-            <BackButton goBack={navigation.goBack} />
+            <BackButton navigation={navigation} />
           </View>
           <Text style={styles.title}>My Stats</Text>
         </View>

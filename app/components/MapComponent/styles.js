@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   ],
   customButton: {
     position: 'absolute',
-    bottom: isMobile ? 220 : isTablet ? 200 : 250,  // Adjust button position for different screen sizes
+    bottom: isMobile ? 110 : isTablet ? 0 : 0,  // Adjust button position for different screen sizes
     right: 20,
     backgroundColor: '#fff',
     borderRadius: 30,
@@ -86,6 +86,203 @@ const styles = StyleSheet.create({
     color: 'black',
     fontWeight: 'bold',
     fontSize: isMobile ? 14 : isTablet ? 16 : 18,  // Adjust font size for different screen sizes
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+  },
+  modalContent: {
+    width: '100%',
+    maxHeight: '85%',
+    backgroundColor: 'white',
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  input: {
+    height: 64, // Match the height used in AddPropertiesScreen
+    borderColor: "#ccc",
+    //borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: '-15',
+    paddingLeft: 10,
+    //paddingVertical: 10,
+  },
+  countRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  countInput: {
+    // ... existing count input styles ...
+  },
+  closeButton: {
+    marginTop: 20,
+    alignSelf: "center",
+    padding: 10,
+  },
+  closeButtonText: {
+    color: "#007BFF",
+    fontSize: 16,
+  },
+  scrollView: {
+    padding: 10,
+  },
+  uploadButton: {
+    backgroundColor: '#7B61FF',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  uploadButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  imagePreview: {
+    width: 300,
+    height: 175,
+    borderRadius: 10,
+    marginTop: 10,
+    alignSelf: "center",
+  },
+  noImageText: {
+    color: "#808080",
+    textAlign: "center",
+    marginTop: 10,
+  },
+  buttonContainer: {
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    //borderWidth: 1,
+    //borderColor: 'red',
+    marginTop: 15,
+    marginBottom: '-10',
+  },
+  switchLabel: {
+    marginRight: 10,
+  },
+  switch: {
+    //marginTop: '-10',
+    alignSelf: 'center',
+  },
+  callout: {
+    width: 150, // Set a width for the callout
+    backgroundColor: 'white', // Background color
+    borderRadius: 5, // Rounded corners
+    padding: 10, // Padding inside the callout
+    shadowColor: '#000', // Shadow color
+    shadowOffset: { width: 0, height: 2 }, // Shadow offset
+    shadowOpacity: 0.3, // Shadow opacity
+    shadowRadius: 4, // Shadow radius
+  },
+  calloutTitle: {
+    fontWeight: 'bold', // Bold title
+    fontSize: 16, // Title font size
+  },
+  calloutDescription: {
+    fontSize: 14, // Description font size
+    color: 'gray', // Description color
+  },
+  colorPickerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  colorOption: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginRight: 10,
+    marginTop: 10,
+  },
+  coverageOptionButton: {
+    borderWidth: 2,
+    borderColor: "#7B61FF",
+    backgroundColor: "#7B61FF",
+    borderRadius: 20,
+    paddingVertical: 12,
+    //paddingHorizontal: 24,
+    marginVertical: 8,
+    alignItems: "center",
+    justifyContent: 'center',
+    width: '30%'
+  },
+  propertyTypeOptionsContainer: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  propertyTypeRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  propertyTypeOptionButton: {
+    borderWidth: 2,
+    borderColor: "#7B61FF",
+    backgroundColor: "#7B61FF",
+    borderRadius: 20,
+    paddingVertical: 12,
+    //paddingHorizontal: 24,
+    marginVertical: 8,
+    alignItems: "center",
+    justifyContent: 'center',
+    width: '50%',
+  },
+  optionText: {
+    color: '#FFFFFF',
+  },
+  coverageContainer: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  coverageOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  propertyTypeContainer: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  propertyTypeOptions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  selectedCoverageOption: {
+    backgroundColor: "#FFFFFF", // Change background when selected
+    borderColor: "#7B61FF", // Keep border consistent
+  },
+  selectedPropertyTypeOption: {
+    backgroundColor: "#FFFFFF", // Change background when selected
+    borderColor: "#7B61FF", // Keep border consistent
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    marginTop: 5,
+  },
+  selectedButton: {
+    backgroundColor: "#FFFFFF", // Change background when selected
+    borderColor: "#7B61FF", // Keep border consistent
+  },
+  selectedText: {
+    color: '#7B61FF',
   },
 });
 

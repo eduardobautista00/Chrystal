@@ -182,6 +182,39 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 10
   },
+  actionButtonText: {
+    color: 'black',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  doneButton: {
+    backgroundColor: '#008000',
+    padding: 10,
+    borderRadius: 10,
+  },
+  editButton: {
+    backgroundColor: '#FFA500',
+    padding: 10,
+    borderRadius: 10,
+  },
+  deleteButton: {
+    backgroundColor: '#FF0000',
+    padding: 10,
+    borderRadius: 10,
+  },
+  disabledDoneButton: {
+    backgroundColor: '#008000', // Grey background for disabled buttons
+    opacity: 0.5, 
+  },
+  disabledEditButton: {
+    backgroundColor: '#FFA500', // Grey background for disabled buttons
+    opacity: 0.5,
+  },
+  disabledDeleteButton: {
+    backgroundColor: '#FF0000', // Grey background for disabled buttons
+    opacity: 0.5,
+  },
+  
   tabContainer: {
     flexDirection: 'row',
     marginBottom: 15,
@@ -346,6 +379,99 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f0f8ff', // Optional: match your app's theme
+},
+toggleContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  //marginBottom: 10,
+  height: 30,
+},
+dropdownContainer: {
+  paddingVertical: 10,
+},
+selectedItemLabel: {
+  // Style for selected item labels
+  backgroundColor: '#E0E0E0', // Light background for tags
+  borderRadius: 20, // Rounded corners
+  padding: 5, // Padding for tags
+  margin: 2, // Margin between tags
+},
+selectedItemContainer: {
+  // Style for the container of selected items
+  flexDirection: 'row', // Align tags in a row
+  flexWrap: 'wrap', // Allow wrapping of tags
+},
+timeConflictModalContainer: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+},
+
+timeConflictModalContent: {
+  backgroundColor: 'white',
+  borderRadius: 20,
+  padding: 20,
+  width: '80%',
+  alignItems: 'center',
+  shadowColor: '#000',
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
+  shadowOpacity: 0.25,
+  shadowRadius: 4,
+  elevation: 5,
+},
+
+timeConflictModalTitle: {
+  fontSize: 20,
+  fontWeight: 'bold',
+  marginBottom: 15,
+  color: '#333',
+},
+
+timeConflictModalMessage: {
+  fontSize: 16,
+  textAlign: 'center',
+  marginBottom: 20,
+  color: '#666',
+},
+
+timeConflictButtonContainer: {
+  width: '100%',
+  gap: 10,
+},
+
+timeConflictButton: {
+  padding: 15,
+  borderRadius: 10,
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: '100%',
+},
+
+timeConflictPrimaryButton: {
+  backgroundColor: '#7B61FF',
+},
+
+timeConflictSecondaryButton: {
+  backgroundColor: '#7B61FF',
+},
+
+timeConflictCancelButton: {
+  backgroundColor: 'transparent',
+},
+
+timeConflictButtonText: {
+  color: 'white',
+  fontSize: 16,
+  fontWeight: '600',
+},
+
+timeConflictCancelText: {
+  color: '#666',
 },
 });
 

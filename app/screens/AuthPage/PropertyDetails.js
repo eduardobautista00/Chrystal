@@ -5,15 +5,16 @@ import AnimatedBackground from "../../components/AnimatedBackgroundAlt";
 import BackButton from '../../components/BackButton';
 import getEnvVars from '../../config/env';
 import { useAuth } from '../../context/AuthContext';
+import DropDownPicker from 'react-native-dropdown-picker';
 
 // Function to map currency codes to their symbols
 const getCurrencySymbol = (currencyCode) => {
-  switch (currencyCode) {
+  switch (currencyCode.toUpperCase()) {
     case 'USD':
       return '$';
     case 'EUR':
       return '€';
-    case 'YEN':
+    case 'JPY':
       return '¥';
     default:
       return currencyCode; // Fallback to the code if no symbol is defined
@@ -45,6 +46,10 @@ const PropertyDetails = ({ route, navigation }) => {
 
   // State for controlling the modal visibility
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedBuyer, setSelectedBuyer] = useState(null);
+  const [openBuyer, setOpenBuyer] = useState(false);
+  const [buyerItems, setBuyerItems] = useState([]);
+  const [showBuyerModal, setShowBuyerModal] = useState(false);
 
   // Get the currency symbol using the getCurrencySymbol function
   const currencySymbol = getCurrencySymbol(property.currency);
@@ -84,22 +89,40 @@ const PropertyDetails = ({ route, navigation }) => {
   }, [apiUrl, propertyId]);
   
   
+  const fetchBuyers = async () => {
+    try {
+      const response = await fetch(`${apiUrl}/buyers/${propertyId}`);
+      if (!response.ok) throw new Error('Failed to fetch buyers');
+      const data = await response.json();
+      
+      // Format buyers for the dropdown using the correct property names
+      const formattedBuyers = (data || []).map(buyer => ({
+        label: `${buyer.buyer_first_name} ${buyer.buyer_last_name}`,
+        value: buyer.id,
+        buyer: buyer // Store the full buyer object for reference
+      }));
+      
+      setBuyerItems(formattedBuyers);
+    } catch (error) {
+      console.error('Error fetching buyers:', error);
+      alert('Error fetching buyers');
+    }
+  };
+
   const markAsSold = async (status) => {
-    setLoading(true); // Show loading spinner
+    if (!selectedBuyer) {
+      alert('Please select a buyer first');
+      return;
+    }
+
+    setLoading(true);
     try {
       const agentResponse = await fetch(`${apiUrl}/agents`);
-      if (!agentResponse.ok) {
-        throw new Error("Failed to fetch agents");
-      }
+      if (!agentResponse.ok) throw new Error("Failed to fetch agents");
       const agentData = await agentResponse.json();
 
       const matchingAgent = agentData.agents.find((agent) => agent.user_id === authState.user.id);
-
-      if (!matchingAgent) {
-        throw new Error("Agent not found for the current user");
-      }
-
-      const agentId = matchingAgent.id;
+      if (!matchingAgent) throw new Error("Agent not found for the current user");
 
       const response = await fetch(`${apiUrl}/properties/${propertyId}/mark-as-sold`, {
         method: 'POST',
@@ -108,7 +131,8 @@ const PropertyDetails = ({ route, navigation }) => {
         },
         body: JSON.stringify({
           status,
-          agent_id: agentId,
+          agent_id: matchingAgent.id,
+          buyer_id: selectedBuyer
         }),
       });
 
@@ -116,6 +140,7 @@ const PropertyDetails = ({ route, navigation }) => {
 
       if (response.ok) {
         alert('Property marked as sold!');
+        setShowBuyerModal(false);
         fetchPropertyDetails();
       } else {
         alert(`Failed to mark property as sold: ${data.message || 'Unknown error'}`);
@@ -124,12 +149,15 @@ const PropertyDetails = ({ route, navigation }) => {
       console.error('Error marking property as sold:', error);
       alert('Error marking property as sold');
     } finally {
-      setLoading(false); // Hide loading spinner
+      setLoading(false);
     }
   };
-  
-  
 
+  useEffect(() => {
+    fetchBuyers();
+  }, []);
+  
+  
   return (
     <AnimatedBackground>
       <View style={styles.backButtoncontainer}>
@@ -148,7 +176,7 @@ const PropertyDetails = ({ route, navigation }) => {
       source={{
         uri: propertyDetails?.image_url?.trim() 
           ? propertyDetails?.image_url 
-          : 'https://via.placeholder.com/300'
+          : 'https://dummyimage.com/300x300'
       }} 
       style={styles.image} 
     />
@@ -299,21 +327,74 @@ const PropertyDetails = ({ route, navigation }) => {
         </Text>
       </ScrollView>
 
-      {/* Mark as Sold Button */}
+      {/* Add this new Modal for buyer selection */}
+      <Modal
+        visible={showBuyerModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowBuyerModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Select Buyer</Text>
+            
+            <View style={styles.dropdownContainer}>
+              <DropDownPicker
+                open={openBuyer}
+                value={selectedBuyer}
+                items={buyerItems}
+                setOpen={setOpenBuyer}
+                setValue={setSelectedBuyer}
+                setItems={setBuyerItems}
+                placeholder="Select a buyer"
+                searchable={true}
+                searchPlaceholder="Search buyers..."
+                listMode="SCROLLVIEW"
+                scrollViewProps={{
+                  nestedScrollEnabled: true,
+                }}
+                style={styles.dropdown}
+                dropDownContainerStyle={styles.dropDownContainer}
+                searchTextInputStyle={styles.searchTextInput}
+                searchContainerStyle={styles.searchContainer}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.closeButton, !selectedBuyer && styles.disabledButton]}
+              onPress={() => markAsSold('sold')}
+              disabled={!selectedBuyer || loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? 'Processing...' : 'Mark as Sold'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => {
+                setShowBuyerModal(false);
+                setSelectedBuyer(null);
+                setOpenBuyer(false);
+              }}
+            >
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modify the existing "Mark as Sold" button in your modal */}
       <TouchableOpacity
-        onPress={() => markAsSold('sold')}
+        onPress={() => setShowBuyerModal(true)}
         style={[
           styles.closeButton,
           propertyDetails?.status === 'sold' && styles.disabledButton,
         ]}
-        disabled={propertyDetails?.status === 'sold' || loading}
+        disabled={propertyDetails?.status === 'sold'}
       >
         <Text style={styles.buttonText}>
-          {loading
-            ? 'Processing...'
-            : propertyDetails?.status === 'sold'
-            ? 'Already Sold'
-            : 'Mark as Sold'}
+          {propertyDetails?.status === 'sold' ? 'Already Sold' : 'Mark as Sold'}
         </Text>
       </TouchableOpacity>
 
@@ -445,6 +526,26 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5, // Reduce opacity for a disabled look
+  },
+  dropdownContainer: {
+    width: '100%',
+    marginBottom: 20,
+    zIndex: 1000,
+  },
+  dropdown: {
+    borderColor: '#ddd',
+    borderRadius: 8,
+  },
+  dropDownContainer: {
+    borderColor: '#ddd',
+    maxHeight: 200,
+  },
+  searchTextInput: {
+    borderColor: '#ddd',
+    borderRadius: 8,
+  },
+  searchContainer: {
+    borderBottomColor: '#ddd',
   },
 });
 

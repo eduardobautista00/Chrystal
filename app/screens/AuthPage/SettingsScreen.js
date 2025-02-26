@@ -2,48 +2,165 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity, Switch, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 import ProfileHeader from '../../components/ProfileHeader';
 import StatsCard from '../../components/ProfileStatsCard';
-import BackButton from '../../components/BackButton';
-import AnimatedBackground from "../../components/AnimatedBackground";
+import BackButton from '../../components/ProfileBackButton';
 import BottomNavigation from '../../components/BottomNavigation';
 import { useAuth } from '../../context/AuthContext';
+import getEnvVars from '../../config/env';
+import axios from 'axios';
+
+const { apiUrl } = getEnvVars();
+
+// Configure notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 const SettingsScreen = ({ navigation }) => {
-  const { authState } = useAuth();
+  const { authState, logout } = useAuth();
   const [pushEnabled, setPushEnabled] = useState(false);
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState('Notifications');
 
+  console.log("auth user: ", authState.user);
+  console.log('Token being used:', authState.token);
+
+
   useEffect(() => {
     const checkPermission = async () => {
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status === 'granted') {
-        setPushEnabled(true);
-      }
-    };
-    checkPermission();
-  }, []);
-
-  const registerForPushNotifications = async () => {
-    const { status } = await Notifications.getPermissionsAsync();
-    if (status !== 'granted') {
-      const { status: newStatus } = await Notifications.requestPermissionsAsync();
-      if (newStatus !== 'granted') {
-        Alert.alert('Permission Required', 'Please enable notifications in your device settings.');
+      if (!Device.isDevice) {
+        Alert.alert('Error', 'Must use physical device for Push Notifications');
         return;
       }
-    }
-    const token = await Notifications.getExpoPushTokenAsync();
-    console.log('Push Notification Token:', token.data);
-  };
+
+      // Check if user has a device token already
+      if (authState.user?.device_token) {
+        setPushEnabled(true);
+      } else {
+        setPushEnabled(false);
+      }
+
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+    };
+
+    checkPermission();
+
+    const subscription = Notifications.addNotificationReceivedListener(notification => {
+      console.log('Notification received:', notification);
+    });
+
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('Notification response received:', response);
+    });
+
+    return () => {
+      subscription.remove();
+      responseSubscription.remove();
+    };
+  }, [authState.user?.device_token]);
 
   const handlePushToggle = async (value) => {
-    if (value) {
-      await registerForPushNotifications();
+    try {
+      if (value) {
+        if (!Device.isDevice) {
+          Alert.alert('Error', 'Must use physical device for Push Notifications');
+          setPushEnabled(false);
+          return;
+        }
+
+        const { status } = await Notifications.requestPermissionsAsync();
+        if (status === 'granted') {
+          const token = (await Notifications.getExpoPushTokenAsync()).data;
+          
+          try {
+            // First attempt with current token
+            const response = await axios.post(
+              `${apiUrl}/update-device-token`, 
+              { device_token: token },
+              {
+                headers: { 
+                  'Authorization': `Bearer ${authState.token}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+            console.log('Device token update response:', response.data);
+            setPushEnabled(true);
+            Alert.alert('Push Notifications Enabled', 'You will now receive push notifications.');
+          } catch (error) {
+            console.error('Device token update error:', error.response?.data);
+            if (error.response?.status === 401) {
+              console.error('Authorization failed. Token:', authState.token);
+              // Token expired, log out user and redirect to login
+              await logout();
+              Alert.alert(
+                'Session Expired',
+                'Your session has expired. Please log in again.',
+              );
+            } else {
+              throw error;
+            }
+          }
+        } else {
+          setPushEnabled(false);
+          Alert.alert('Permission Denied', 'Failed to enable push notifications');
+          return;
+        }
+      } else {
+        // Set the state before making the API call
+        setPushEnabled(false);
+        
+        try {
+          // Remove token from server
+          await axios.post(
+            `${apiUrl}/remove-device-token`, 
+            { device_token: null },
+            { 
+              headers: { 
+                'Authorization': `Bearer ${authState.token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          );
+          
+          Alert.alert('Push Notifications Disabled', 'You will no longer receive push notifications.');
+        } catch (error) {
+          if (error.response?.status === 401) {
+            // Session expired, log out user
+            await logout();
+            Alert.alert(
+              'Session Expired',
+              'Your session has expired. Please log in again.',
+            );
+          } else {
+            // For other errors, revert the switch state
+            setPushEnabled(true);
+            Alert.alert('Error', 'Failed to disable notifications. Please try again.');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling push notifications:', error);
+      // Only revert the switch state for non-auth errors
+      if (error.response?.status !== 401) {
+        setPushEnabled(!value);
+        Alert.alert('Error', 'Failed to update notification settings');
+      }
     }
-    setPushEnabled(value);
   };
+
 
   const renderOptions = () => {
     switch (selectedMenu) {
@@ -101,7 +218,7 @@ const SettingsScreen = ({ navigation }) => {
       >
         <View style={styles.backButtonContainer}>
           <View style={styles.button}>
-            <BackButton goBack={navigation.goBack} />
+            <BackButton navigation={navigation} />
           </View>
           <Text style={styles.title}>Settings</Text>
         </View>
@@ -126,7 +243,7 @@ const SettingsScreen = ({ navigation }) => {
               style={[styles.menuItem, styles.logoutItem]}
               onPress={async () => {
                 try {
-                  await authState.logout(); 
+                  await logout(); 
                   console.log("Logged out successfully.");
                 } catch (error) {
                   console.error("Logout failed:", error.message);

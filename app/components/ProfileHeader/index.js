@@ -13,7 +13,7 @@ const ProfileHeader = () => {
 
   useEffect(() => {
     const fetchAgentData = async () => {
-      if (authState.user.role_name === 'Admin') {
+      if (authState.role === 'Admin') {
         // Set default data for Admin
         setAgentData({
           firstName: authState.user.first_name,
@@ -23,7 +23,7 @@ const ProfileHeader = () => {
           phone: 'N/A',
           profileImage: null,
         });
-      } else if (authState.user.role_name === 'Agent' && authState.user.id) {
+      } else if (authState.role === 'Agent' && authState.user.id) {
         setLoading(true);
         try {
           const response = await fetch(`${apiUrl}/agents`);
