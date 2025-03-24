@@ -1,73 +1,55 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import MapComponent from '../../components/MapComponent';
-import MapSearchField from '../../components/MapSearchField';
 import Logo from '../../components/LogoDashboard';
-import VerticalContainer from '../../components/VerticalContainer';
-import AnimatedBackground from "../../components/AnimatedBackground";
+import FeaturedListing from '../../components/FeaturedListing';
 import { useAuth } from "../../context/AuthContext";
-import Pusher from 'pusher-js/react-native';
 
+const height = Dimensions.get('window').height;
 
 export default function Dashboard() {
-  const [searchValue, setSearchValue] = useState(''); // To manage the search input
-  const [selectedFilters, setSelectedFilters] = useState([]); // To manage selected filters
+  const [searchValue, setSearchValue] = useState('');
   const { authState } = useAuth();
+  const [selectedFilter, setSelectedFilter] = useState(null);
 
-
-  console.log(authState.user, "user role")
-
-  
-
-  // Handle change in search input
-  const handleSearchChange = (text) => {
-    setSearchValue(text);
+  const handleFilterChange = (filter) => {
+    setSelectedFilter(filter);
+    console.log('Selected Filter in Dashboard:', filter);
   };
 
-  // Handle clearing the search input
-  const handleClear = () => {
-    setSearchValue('');
-  };
-
-  // Handle filter toggle (add or remove filter)
-  const handleFilterToggle = (filter) => {
-    setSelectedFilters((prevFilters) =>
-      prevFilters.includes(filter)
-        ? prevFilters.filter((item) => item !== filter) // Remove filter
-        : [...prevFilters, filter] // Add filter
-    );
-  };
+  // Check authState and fallback if necessary
+  const userRole = authState?.user?.role || 'Guest';  // Example of a fallback
 
   return (
-    
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} // Use 'padding' for iOS, 'height' for Android
-    >
-      <View style={styles.headerContainer}>
-        <Logo />
-        {/* <MapSearchField
-          searchValue={searchValue}
-          onSearchChange={handleSearchChange}
-          onClear={handleClear}
-          onFilterToggle={handleFilterToggle}
-          selectedFilters={selectedFilters}
-        /> */}
-      </View>
-      <MapComponent style={styles.map} />
-      <VerticalContainer />
-    </KeyboardAvoidingView>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.headerContainer}>
+          <Logo />
+        </View>
+        <MapComponent style={styles.map} selectedFilter={selectedFilter} />
+        <FeaturedListing 
+          onFilterChange={handleFilterChange}
+          selectedFilter={selectedFilter}
+        />
+      </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerContainer: {
-    //marginTop: '-20',
-  },
   container: {
     flex: 1,
+    //alignItems: 'flex-start',
+    //justifyContent: 'flex-start',
+    //height: {height}
+  },
+  headerContainer: {
+    //paddingTop: 20, // Add some spacing if needed
+    //paddingHorizontal: 15,
   },
   map: {
-    flex: 1, // Ensure the map takes up available space
+    flex: 1, // Ensures the map takes full height
   },
 });

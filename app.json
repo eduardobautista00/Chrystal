@@ -4,22 +4,26 @@
     "slug": "Exlogrn",
     "version": "2.0.0",
     "orientation": "portrait",
-    "icon": "./assets/app.png",
+    "icon": "./assets/Chrystal-New-Icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/Chrystal-Splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "firebase": {
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "google-services.json"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
-      "googleServicesFile": "./google-services.json",
+      "googleServicesFile": "google-services.json",
       "plugins": [
         [
           "expo-build-properties",
@@ -42,7 +46,7 @@
           {
             "firebaseCore": {
               "android": {
-                "googleServicesFile": "./google-services.json"
+                "googleServicesFile": "google-services.json"
               }
             }
           }
@@ -53,24 +57,32 @@
           "apiKey": "AIzaSyAr9kfNHZVPuF9UelpQ-Vnu6F4jyCbuzYY"
         }
       },
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "NOTIFICATIONS"],
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "NOTIFICATIONS"
+      ],
       "notification": {
-      "icon": "./assets/notification-icon.png",
-      "color": "#000000"
-    },
+        "icon": "./assets/Notification-icon.png",
+        "color": "#ffffff",
+        "androidMode": "collapse",
+        "androidCollapsedTitle": "#{unread_notifications} new notifications",
+        "iosDisplayInForeground": true
+      },
       "adaptiveIcon": {
-        "foregroundImage": "./assets/app.png",
+        "foregroundImage": "./assets/Chrystal-New-Icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.ob_eduardo.Krystal"
     },
     "web": {
-      "favicon": "./assets/app.png"
+      "favicon": "./assets/Chrystal-New-Icon.png"
     },
     "extra": {
       "eas": {
-        "projectId": "deda414b-ca80-4f41-b68c-2b830963c3d9"
+        "projectId": "6df7e3f0-7f58-4ac9-a494-6877cae108e6"
       }
-    }
+    },
+    "owner": "kristiane4628"
   }
 }

@@ -3,9 +3,11 @@ import { StyleSheet } from 'react-native';
 const styles = StyleSheet.create({
   // Main container
   container: {
-    flex: 1.5,
-    backgroundColor: '#f0f0f0',
-    height: 200,
+    flex: 1,
+    backgroundColor: 'transparent',
+    //height: 200,
+    paddingHorizontal: 20,
+    paddingVertical: 10
   },
 
   // Title text
@@ -32,16 +34,16 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 5,
-    backgroundColor: '#ED1C24',
+    backgroundColor: '#7B61FF',
     borderRadius: 20,
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },
   closeButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
   },
 
@@ -67,7 +69,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   filterText: {
-    color: '#fff',
+    color: '#000',
     fontSize: 16,
     marginRight: 5,
   },
@@ -101,13 +103,24 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-start',
-    padding: 20,
+    //padding: 20,
     backgroundColor: '#fff',
   },
-  modalTitle: {
-    fontSize: 20,
+  modalContent: {
+    //flex: 1,
+    justifyContent: 'flex-start',
+    padding: 20,
+    backgroundColor: '#fff',
+    //height: '100%',
+  },
+  modalTitleHeader: {
+    fontSize: 26,
     color: '#000',
-    marginBottom: 20,
+    marginBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 24,
+    color: '#000',
   },
   input: {
     borderWidth: 1,
@@ -115,13 +128,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 10,
     borderRadius: 5,
-    marginBottom: 20,
+    //marginBottom: 10,
+  },
+  filterOptionTitle: {
+    fontSize: 20,
+    color: '#000',
+    //marginBottom: 10,
   },
 
   // Color picker styling
   colorPickerContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   colorPickerText: {
     color: '#000',
@@ -131,8 +150,8 @@ const styles = StyleSheet.create({
   colorCircle: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    width: 40,
-    height: 40,
+    width: 35,
+    height: 35,
     borderRadius: 20,
     marginHorizontal: 5,
     marginVertical: 5,
@@ -147,17 +166,100 @@ const styles = StyleSheet.create({
     color: '#888',
   },
   saveButton: {
-    backgroundColor: '#000',
+    backgroundColor: '#7B61FF',
     padding: 10,
     borderRadius: 5,
-    marginTop: 20,
+    marginTop: 10,
+    width: '95%',
     alignItems: 'center',
+    alignSelf: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+
   },
   saveButtonText: {
     color: 'white',
     fontWeight: 'bold',
   },
+  rowContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  slider: {
+    width: '100%',
+    borderWidth: 1,
+  },
+  rangeTextContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  rangeTitleText: {
+    fontSize: 16,
+    color: '#888',
+  },
+  rangeText: {
+    fontSize: 16,
+    color: '#888',
+  },
+  filterOptionSection: {
+    marginTop: 10,
+  },
+  // Checkbox container
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 5,
+  },
   
+  checkbox: {
+    width: 30,
+    height: 30,
+    borderWidth: 1,
+    borderColor: '#7B61FF', // Border color
+    borderRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+    backgroundColor: 'transparent', // Default background
+  },
+  checkedCheckbox: {
+    backgroundColor: '#7B61FF', // Change to your desired checked color
+  },
+
+  checkboxText: {
+    fontSize: 16,
+    color: '#000',
+    fontWeight: 'bold', // Make text bold
+  },
+
+  rowLayout: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  picker: {
+    //width: '100%',
+    borderWidth: 1,
+    borderColor: '#000',
+    backgroundColor: '#fff',
+    paddingVertical: 5,
+    borderRadius: 5,
+  },
+  typeGridContainer: {
+    width: '100%',
+  },
+  typeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginVertical: 5,
+  },
+  typeItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
 });
 
 export default styles;

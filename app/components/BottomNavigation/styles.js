@@ -6,8 +6,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingVertical: 15,
     backgroundColor: '#fff',
-    borderTopWidth: 1,
+    borderWidth: 1,
     borderColor: '#eee',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomWidth: 0,
     //marginTop: -20,
   },
   navButton: {

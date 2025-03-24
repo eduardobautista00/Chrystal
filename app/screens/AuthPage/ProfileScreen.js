@@ -4,34 +4,36 @@ import { LinearGradient } from 'expo-linear-gradient';
 import ProfileHeader from '../../components/ProfileHeader';
 import StatsCard from '../../components/ProfileStatsCard';
 import PropertyList from '../../components/ProfilePropertyList';
-import BackButton from '../../components/BackButton';
+import BackButton from '../../components/ProfileBackButton';
 import AnimatedBackground from "../../components/AnimatedBackground";
 import BottomNavigation from '../../components/BottomNavigation';
-
+import { useDarkMode } from '../../context/DarkModeContext';
 
 const ProfileScreen = ({ navigation }) => {
+  const { isDarkMode } = useDarkMode();
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isDarkMode ? '#1A1A1A' : '#ECEAFF' }]}>
       <LinearGradient
-        colors={['#0068C8', '#C852FF']}
+        colors={isDarkMode ? ['#004080', '#8C39B5'] : ['#0068C8', '#C852FF']}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={styles.gradient}
       >
         <View style={styles.backButtonContainer}>
-          <View style={styles.button}>
-            <BackButton goBack={navigation.goBack} />
+          <View style={[styles.button, { backgroundColor: isDarkMode ? '#1A1A1A' : '#FFFFFF' }]}>
+            <BackButton navigation={navigation} isDarkMode={isDarkMode} />
           </View>
-          <Text style={styles.title}>My Profile</Text>
+          <Text style={[styles.title, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>My Profile</Text>
         </View>
-        <ProfileHeader />
+        <ProfileHeader isDarkMode={isDarkMode} />
       </LinearGradient>
-      <StatsCard />
-      {/* PropertyList scrolls independently */}
+
+      <StatsCard isDarkMode={isDarkMode} />
       <View style={styles.propertyListContainer}>
-        <PropertyList navigation={navigation} />
+        <PropertyList navigation={navigation} isDarkMode={isDarkMode} />
       </View>
-      <BottomNavigation />
+      
+      <BottomNavigation isDarkMode={isDarkMode} />
     </View>
   );
 };
@@ -40,22 +42,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ECEAFF',
-    //marginTop: 10,
   },
   gradient: {
     paddingHorizontal: 20,
     paddingTop: 10,
     height: 250,
     width: '100%',
-    //height: '50%',
     borderBottomLeftRadius: 50,
     borderBottomRightRadius: 50,
-    //justifyContent: 'center'
   },
   backButtonContainer: {
     width: '100%',
     flexDirection: 'row',
-    //justifyContent: 'space-between',
     alignItems: 'center',
   },
   title: {
@@ -71,9 +69,9 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
   propertyListContainer: {
-    flex: 1, // Allow the list to take remaining space
+    flex: 1,
     paddingVertical: 20,
-  },
+  }
 });
 
 export default ProfileScreen;

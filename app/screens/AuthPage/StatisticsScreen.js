@@ -5,14 +5,16 @@ import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { Picker } from '@react-native-picker/picker';
 import ProfileHeader from '../../components/ProfileHeader';
 import StatsCard from '../../components/ProfileStatsCard';
-import BackButton from '../../components/BackButton';
+import BackButton from '../../components/ProfileBackButton';
 import BottomNavigation from '../../components/BottomNavigation';
 import { useAuth } from '../../context/AuthContext';
 import { Dimensions } from 'react-native';
 import getEnvVars from '../../config/env';
+import { useDarkMode } from '../../context/DarkModeContext';
 
 const StatisticsScreen = ({ navigation }) => {
   const { authState } = useAuth();
+  const { isDarkMode } = useDarkMode();
   const [selectedPeriod, setSelectedPeriod] = useState('day');
   const [reportType, setReportType] = useState('sales');
   const [selectedreportType, setSelectedReportType] = useState('sales');
@@ -31,7 +33,10 @@ const StatisticsScreen = ({ navigation }) => {
   const [firstSaleDate, setFirstSaleDate] = useState(null);
   const [agentData, setAgentData] = useState(null);
   const currentYear = new Date().getFullYear();
+  const [conversionRates, setConversionRates] = useState({ EUR: 1, JPY: 1 }); // New state for conversion rates
   const { apiUrl } = getEnvVars();
+
+  console.log("conversion ratesState", conversionRates);
 
   const fetchAgentData = async () => {
     try {
@@ -64,6 +69,26 @@ const StatisticsScreen = ({ navigation }) => {
     }
   };
 
+  const fetchConversionRates = async () => {
+    try {
+      const response = await fetch('https://api.frankfurter.app/latest?base=USD&symbols=EUR,JPY');
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversion rates');
+      }
+      const data = await response.json();
+      setConversionRates(data.rates); // Store conversion rates in state
+      console.log("conversion rates", data.rates);
+
+    } catch (error) {
+      console.error('Error fetching conversion rates:', error);
+    }
+  };
+  
+  // Call fetchConversionRates in useEffect
+  useEffect(() => {
+    fetchConversionRates(); // Fetch conversion rates on component mount
+  }, []);
+
   const pollSalesData = async () => {
     try {
         const response = await fetch(`${apiUrl}/agents`);
@@ -80,6 +105,17 @@ const StatisticsScreen = ({ navigation }) => {
             }
             const salesData = await salesResponse.json();
             console.log("sale:", salesData);
+
+            // Convert sales prices to USD immediately after fetching, only for JPY and EUR
+            const convertedSalesData = salesData.sold_properties.map(property => {
+                let priceInUSD = property.price; // Default to original price
+                if (property.currency === 'JPY') {
+                    priceInUSD = property.price / conversionRates.JPY; // Convert JPY to USD
+                } else if (property.currency === 'EUR') {
+                    priceInUSD = property.price / conversionRates.EUR; // Convert EUR to USD
+                }
+                return { ...property, price: priceInUSD }; // Replace the price with the converted price
+            });
 
             const processedSalesData = {
                 daily: {},
@@ -103,7 +139,7 @@ const StatisticsScreen = ({ navigation }) => {
             };
 
             // Loop through all sold properties to process sales data
-            salesData.sold_properties.forEach((property) => {
+            convertedSalesData.forEach((property) => {
                 const soldDate = new Date(property.sold_at);
                 const dayLabel = soldDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
                 const monthLabel = soldDate.toLocaleDateString("en-US", { month: "short", year: "numeric" }); // Format: "Jan 2024"
@@ -628,6 +664,17 @@ const pollAveSalesData = async () => {
           const avesalesData = await avesalesResponse.json();
           console.log("sale:", avesalesData);
 
+          // Convert sales prices to USD immediately after fetching, only for JPY and EUR
+          const convertedAveSalesData = avesalesData.sold_properties.map(property => {
+              let priceInUSD = property.price; // Default to original price
+              if (property.currency === 'JPY') {
+                  priceInUSD = property.price / conversionRates.JPY; // Convert JPY to USD
+              } else if (property.currency === 'EUR') {
+                  priceInUSD = property.price / conversionRates.EUR; // Convert EUR to USD
+              }
+              return { ...property, price: priceInUSD }; // Replace the price with the converted price
+          });
+
           const processedAveSalesData = {
               daily: {},
               monthly: {}, // Monthly data with weekly sales and average
@@ -643,7 +690,7 @@ const pollAveSalesData = async () => {
           };
 
           // Loop through all sold properties to process sales data
-          avesalesData.sold_properties.forEach((property) => {
+          convertedAveSalesData.forEach((property) => {
               const soldDate = new Date(property.sold_at);
               const dayLabel = soldDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
               const weekLabel = getWeekLabel(soldDate);
@@ -889,7 +936,7 @@ const renderWeeklyPieChart = () => {
     name: data.weekLabel,
     label: data.amount > 0 ? `${data.amount.toLocaleString()}` : "",
     color: ["#FF6347", "#98FB98", "#87CEFA", "#FFD700", "#FFA07A"][index % 5],
-    legendFontColor: "#7F7F7F",
+    legendFontColor: isDarkMode ? "#fff" : "#7F7F7F",
     legendFontSize: 15,
   }));
 
@@ -908,7 +955,7 @@ const renderWeeklyPieChart = () => {
       <PieChart
         data={modifiedPieData}
         width={Dimensions.get("window").width}
-        height={315}
+        height={270}
         chartConfig={{
           backgroundColor: "#e26a00",
           backgroundGradientFrom: "#fb8c00",
@@ -1049,14 +1096,14 @@ const renderMonthlyChart = () => {
           labels: monthLabels,
           datasets: [
             {
-              data: dataset1.map(value => Math.round(value)), // Round values to the nearest integer
+              data: dataset1.map(Math.round), // Remove decimal places
               label: selectedreportType.charAt(0).toUpperCase() + selectedreportType.slice(1), // Capitalize the label
               color: (opacity = 1) => dataset1Color.replace("1", opacity),
             },
           ],
         }}
         width={Dimensions.get("window").width - 0}
-        height={300}
+        height={250}
         chartConfig={barChartConfig}
         style={[styles.chart, { marginLeft: -75}]}
         verticalLabelRotation={-45}
@@ -1096,14 +1143,15 @@ const renderMonthlyChart = () => {
           legend,
         }}
         width={Dimensions.get("window").width - 0}
-        height={250}
+        height={210}
         chartConfig={{
-          backgroundColor: "#ECEAFF",
-          backgroundGradientFrom: "#ECEAFF",
-          backgroundGradientTo: "#ECEAFF",
+          backgroundColor: isDarkMode ? "#1A1A1A" : "#ECEAFF",
+          backgroundGradientFrom: isDarkMode ? "#1A1A1A" : "#ECEAFF",
+          backgroundGradientTo: isDarkMode ? "#1A1A1A" : "#ECEAFF",
           decimalPlaces: 0,
-          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+          
+          color: (opacity = 1) => isDarkMode ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
+          labelColor: (opacity = 1) => isDarkMode ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
           style: {
             borderRadius: 16,
           },
@@ -1211,14 +1259,14 @@ const renderYearlyChart = () => {
           legend
         }}
         width={Dimensions.get("window").width - 0}
-        height={250}
+        height={210}
         chartConfig={{
-          backgroundColor: "#ECEAFF",
-          backgroundGradientFrom: "#ECEAFF",
-          backgroundGradientTo: "#ECEAFF",
+          backgroundColor: isDarkMode ? "#1A1A1A" : "#ECEAFF",
+          backgroundGradientFrom: isDarkMode ? "#1A1A1A" : "#ECEAFF",
+          backgroundGradientTo: isDarkMode ? "#1A1A1A" : "#ECEAFF",
           decimalPlaces: 0,
-          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+          color: (opacity = 1) => isDarkMode ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
+          labelColor: (opacity = 1) => isDarkMode ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`,
           style: {
             borderRadius: 16,
           },
@@ -1265,7 +1313,7 @@ const renderYearlyChart = () => {
       name: legend[index], // Use only the label for the name
       value: value, // Data value for the pie chart
       color: ["#FF6347", "#98FB98", "#87CEFA", "#FFD700", "#FFA07A"][index % 5],
-      legendFontColor: "#7F7F7F",
+      legendFontColor: isDarkMode ? "#fff" : "#7F7F7F",
       legendFontSize: 12,
     }));
 
@@ -1284,7 +1332,7 @@ const renderYearlyChart = () => {
         <PieChart
           data={pieData}
           width={Dimensions.get("window").width}
-          height={300}
+          height={270}
           chartConfig={{
             backgroundColor: "#ECEAFF",
             backgroundGradientFrom: "#ECEAFF",
@@ -1336,11 +1384,11 @@ const getRandomColor = () =>
     labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
     propsForVerticalLabels: {
       fontSize: 10,
-      fill: '#000'
+      fill: isDarkMode ? '#fff' : '#000'
     },
     propsForHorizontalLabels: {
       fontSize: 10,
-      fill: '#000',
+      fill: isDarkMode ? '#fff' : '#000',
       rotation: -45
     },
     style: {
@@ -1384,13 +1432,13 @@ const getRandomColor = () =>
           labels: daysInWeek,
           datasets: [
             {
-              data: metricData,
+              data: metricData.map(Math.round),
               label: selectedreportType.charAt(0).toUpperCase() + selectedreportType.slice(1), // Capitalize the label
             },
           ],
         }}
           width={Dimensions.get('window').width}
-          height={300}
+          height={250}
           chartConfig={barChartConfig}
           style={[styles.chart, { marginLeft: -75 }]}
           showValuesOnTopOfBars={true}
@@ -1415,7 +1463,7 @@ const getRandomColor = () =>
     const years = [];
     for (let year = 2020; year <= currentYear; year++) {
       years.push(
-        <Picker.Item key={year} label={year.toString()} value={year} style={{ fontSize: 14 }} />
+        <Picker.Item key={year} label={year.toString()} value={year} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
       );
     }
     return years;
@@ -1424,117 +1472,147 @@ const getRandomColor = () =>
   const renderReportTypeItems = () => {
     if (selectedPeriod === 'day') {
       return [
-        <Picker.Item key="sales" label="Total Sales" value="sales" />,
-        <Picker.Item key="appointments" label="Appointments" value="appointments" />,
-        <Picker.Item key="leads" label="New Leads" value="leads" />
+        <Picker.Item key="sales" label="Total Sales" value="sales" style={{ color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />,
+        <Picker.Item key="appointments" label="Appointments" value="appointments" style={{ color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />,
+        <Picker.Item key="leads" label="New Leads" value="leads" style={{ color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
       ];
     } else if (selectedPeriod === 'week') {
       return [
-        <Picker.Item key="sales" label="Total Sales" value="sales" />,
-        <Picker.Item key="appointments" label="Appointments" value="appointments" />,
-        <Picker.Item key="leads" label="New Leads" value="leads" />,
-        <Picker.Item key="sold" label="Properties Sold" value="sold" />,
-        <Picker.Item key="listings" label="New Listings" value="listings" />
+        <Picker.Item key="sales" label="Total Sales" value="sales" style={{ color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />,
+        <Picker.Item key="appointments" label="Appointments" value="appointments" style={{ color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />,
+        <Picker.Item key="leads" label="New Leads" value="leads" style={{ color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />,
+        <Picker.Item key="sold" label="Properties Sold" value="sold" style={{ color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />,
+        <Picker.Item key="listings" label="New Listings" value="listings" style={{ color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
       ];
     } else {
       return [
-        <Picker.Item key="leadActivity" label="Lead Activity" value="leadActivity" />,
-        <Picker.Item key="marketActivity" label="Market Activity" value="marketActivity" />,
-        <Picker.Item key="sales" label="Total Sales" value="sales" />,
-        <Picker.Item key="aveSalePrice" label="Ave. Sale Price" value="aveSalePrice" />
+        <Picker.Item key="leadActivity" label="Lead Activity" value="leadActivity" style={{ color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />,
+        <Picker.Item key="marketActivity" label="Market Activity" value="marketActivity" style={{ color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />,
+        <Picker.Item key="sales" label="Total Sales" value="sales" style={{ color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />,
+        <Picker.Item key="aveSalePrice" label="Ave. Sale Price" value="aveSalePrice" style={{ color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
       ];
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isDarkMode ? '#1A1A1A' : '#ECEAFF' }]}>
       <LinearGradient
-        colors={['#0068C8', '#C852FF']}
+        colors={isDarkMode ? ['#004080', '#8C39B5'] : ['#0068C8', '#C852FF']}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
-        style={styles.gradient}
+        style={styles.gradient}                                                        
       >
         <View style={styles.backButtonContainer}>
-          <View style={styles.button}>
-            <BackButton goBack={navigation.goBack} />
+          <View style={[styles.button, { backgroundColor: isDarkMode ? '#1A1A1A' : '#FFFFFF' }]}>
+            <BackButton navigation={navigation} isDarkMode={isDarkMode} />
           </View>
           <Text style={styles.title}>My Stats</Text>
         </View>
-        <ProfileHeader />
+        <ProfileHeader isDarkMode={isDarkMode}/>
       </LinearGradient>
 
-      <StatsCard />
+      <StatsCard isDarkMode={isDarkMode}/>
 
       <View style={styles.statsContainer}>
-        <Text style={styles.sectionTitle}>Summary Report</Text>
+        <Text style={[styles.sectionTitle, { color: isDarkMode ? '#fff' : '#000' }]}>Summary Report</Text>
         <View style={styles.periodSelector}>
-          <TouchableOpacity
-            style={[styles.periodButton, selectedPeriod === 'day' && styles.selectedPeriod]}
-            onPress={() => setSelectedPeriod('day')}
-          >
-            <Text style={[styles.periodText, selectedPeriod === 'day' && { color: '#fff' }]}>Daily</Text>
+        <TouchableOpacity
+          style={[
+            styles.periodButton,
+            selectedPeriod === 'day' && styles.selectedPeriod,
+            isDarkMode && {
+              backgroundColor: selectedPeriod === 'day' ? '#7B61FF' : '#1A1A1A',
+              borderColor: '#fff',
+              borderWidth: 0.5
+            }
+          ]}
+          onPress={() => setSelectedPeriod('day')}
+        >
+            <Text style={[styles.periodText, selectedPeriod === 'day' && { color: '#fff' }, isDarkMode && { color: '#fff' }]}>Daily</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.periodButton, selectedPeriod === 'week' && styles.selectedPeriod]}
+            style={[styles.periodButton, selectedPeriod === 'week' && styles.selectedPeriod, isDarkMode && {
+              backgroundColor: selectedPeriod === 'week' ? '#7B61FF' : '#1A1A1A',
+              borderColor: '#fff',
+              borderWidth: 0.5
+            }]}
             onPress={() => setSelectedPeriod('week')}
           >
-            <Text style={[styles.periodText, selectedPeriod === 'week' && { color: '#fff' }]}>Weekly</Text>
+            <Text style={[styles.periodText, selectedPeriod === 'week' && { color: '#fff' }, isDarkMode && { color: '#fff' }]}>Weekly</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.periodButton, selectedPeriod === 'month' && styles.selectedPeriod]}
+            style={[styles.periodButton, selectedPeriod === 'month' && styles.selectedPeriod, isDarkMode && {
+              backgroundColor: selectedPeriod === 'month' ? '#7B61FF' : '#1A1A1A',
+              borderColor: '#fff',
+              borderWidth: 0.5
+            }]}
             onPress={() => setSelectedPeriod('month')}
           >
-            <Text style={[styles.periodText, selectedPeriod === 'month' && { color: '#fff' }]}>Monthly</Text>
+            <Text style={[styles.periodText, selectedPeriod === 'month' && { color: '#fff' }, isDarkMode && { color: '#fff' }]}>Monthly</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.periodButton, selectedPeriod === 'year' && styles.selectedPeriod]}
+            style={[styles.periodButton, selectedPeriod === 'year' && styles.selectedPeriod, isDarkMode && {
+              backgroundColor: selectedPeriod === 'year' ? '#7B61FF' : '#1A1A1A',
+              borderColor: '#fff',
+              borderWidth: 0.5
+            }]}
             onPress={() => setSelectedPeriod('year')}
           >
-            <Text style={[styles.periodText, selectedPeriod === 'year' && { color: '#fff' }]}>Yearly</Text>
+            <Text style={[styles.periodText, selectedPeriod === 'year' && { color: '#fff' }, isDarkMode && { color: '#fff' }]}>Yearly</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.selectorContainer}>
           <View style={styles.weekSelector}>
             {selectedPeriod === 'day' ? (
-              <View style={styles.pickerContainer}>
+              <View style={[styles.pickerContainer, isDarkMode && { borderColor: '#fff', borderWidth: 0.5 }]}>
                 <Picker
                   selectedValue={selectedWeekRange}
-                  style={styles.picker}
+                  style={[styles.picker, isDarkMode && { backgroundColor: '#1A1A1A'  }]}
+                  dropdownIconColor={isDarkMode ? '#fff' : '#000'}
                   onValueChange={handleWeekRangeChange}
+                  mode="dropdown"
+
                 >
                   {weekRanges.map((range) => (
-                    <Picker.Item key={range.value} label={range.label} value={range.value} style={{ fontSize: 14 }} />
+                    <Picker.Item key={range.value} label={range.label} value={range.value} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
                   ))}
                 </Picker>
               </View>
             ) : selectedPeriod === 'week' ? (
-              <View style={styles.pickerContainer}>
+              <View style={[styles.pickerContainer, isDarkMode && { borderColor: '#fff', borderWidth: 0.5 }]}>
                 <Picker
                   selectedValue={selectedMonth}
-                  style={styles.picker}
+                  style={[styles.picker, isDarkMode && { backgroundColor: '#1A1A1A'  }]}
                   onValueChange={(itemValue) => setSelectedMonth(itemValue)}
+                  dropdownIconColor={isDarkMode ? '#fff' : '#000'}
+                  mode="dropdown"
+                  dropdownContainerStyle={{
+                    height: 200,
+                  }}
                 >
-                  <Picker.Item label="January" value={1} style={{ fontSize: 14 }} />
-                  <Picker.Item label="February" value={2} style={{ fontSize: 14 }} />
-                  <Picker.Item label="March" value={3} style={{ fontSize: 14 }} />
-                  <Picker.Item label="April" value={4} style={{ fontSize: 14 }} />
-                  <Picker.Item label="May" value={5} style={{ fontSize: 14 }} />
-                  <Picker.Item label="June" value={6} style={{ fontSize: 14 }} />
-                  <Picker.Item label="July" value={7} style={{ fontSize: 14 }} />
-                  <Picker.Item label="August" value={8} style={{ fontSize: 14 }} />
-                  <Picker.Item label="September" value={9} style={{ fontSize: 14 }} />
-                  <Picker.Item label="October" value={10} style={{ fontSize: 14 }} />
-                  <Picker.Item label="November" value={11} style={{ fontSize: 14 }} />
-                  <Picker.Item label="December" value={12} style={{ fontSize: 14 }} />
+                  <Picker.Item label="January" value={1} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
+                  <Picker.Item label="February" value={2} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
+                  <Picker.Item label="March" value={3} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
+                  <Picker.Item label="April" value={4} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
+                  <Picker.Item label="May" value={5} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
+                  <Picker.Item label="June" value={6} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
+                  <Picker.Item label="July" value={7} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
+                  <Picker.Item label="August" value={8} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
+                  <Picker.Item label="September" value={9} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
+                  <Picker.Item label="October" value={10} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
+                  <Picker.Item label="November" value={11} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
+                  <Picker.Item label="December" value={12} style={{ fontSize: 14, color: isDarkMode ? '#fff' : '#000', backgroundColor: isDarkMode ? '#1A1A1A' : '#fff', borderWidth: 0 }} />
                 </Picker>
               </View>
             ) : selectedPeriod === 'month' || (selectedPeriod === 'year' && (reportType === 'sales' || reportType === 'listings')) ? (
-              <View style={styles.pickerContainer}>
+              <View style={[styles.pickerContainer, isDarkMode && { borderColor: '#fff', borderWidth: 0.5 }]}>
                 <Picker
                   selectedValue={selectedYear}
-                  style={styles.picker}
+                  style={[styles.picker, isDarkMode && { backgroundColor: '#1A1A1A'  }]}
                   onValueChange={(itemValue) => setSelectedYear(itemValue)}
+                  dropdownIconColor={isDarkMode ? '#fff' : '#000'}
+                  mode="dropdown"
                 >
                   {generateYearItems()}
                 </Picker>
@@ -1543,11 +1621,13 @@ const getRandomColor = () =>
           </View>
 
           <View style={styles.reportSelector}>
-            <View style={styles.pickerContainer}>
+            <View style={[styles.pickerContainer, isDarkMode && { borderColor: '#fff', borderWidth: 0.5 }]}>
               <Picker
                 selectedValue={selectedreportType}
-                style={styles.picker}
+                style={[styles.picker, isDarkMode && { backgroundColor: '#1A1A1A'  }]}
                 onValueChange={(value) => setSelectedReportType(value)}
+                dropdownIconColor={isDarkMode ? '#fff' : '#000'}
+                mode="dropdown"
               >
                 {renderReportTypeItems()}
               </Picker>
@@ -1557,7 +1637,7 @@ const getRandomColor = () =>
         <View style={styles.chartContainer}>{renderChart()}</View>
       </View>
 
-      <BottomNavigation />
+      <BottomNavigation isDarkMode={isDarkMode}/>
     </View>
   );
 };
@@ -1628,6 +1708,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center'
   },
+
   selectorContainer: {
     flexDirection: 'row-reverse',
     justifyContent: 'space-around',

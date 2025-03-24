@@ -4,10 +4,11 @@ import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons'; // Importing MaterialIcons for simple icons
 import styles from './styles';
 
-const BottomNavigation = () => {
+const BottomNavigation = ({ isDarkMode }) => {
   const navigation = useNavigation();
   const [currentRoute, setCurrentRoute] = useState(navigation.getState().routes[navigation.getState().index].name);
 
+  console.log('currentRoute', currentRoute);
   useEffect(() => {
     const unsubscribe = navigation.addListener('state', () => {
       setCurrentRoute(navigation.getState().routes[navigation.getState().index].name);
@@ -17,40 +18,90 @@ const BottomNavigation = () => {
   }, [navigation]);
 
   return (
-    <View style={styles.bottomNav}>
+    <View style={[styles.bottomNav, isDarkMode && { backgroundColor: '#1A1A1A' }]}>
       <TouchableOpacity 
-        style={[styles.navButton, currentRoute === 'AuthPage_ProfileScreen' && { backgroundColor: '#7B61FF' }]}
-        onPress={() => navigation.navigate('AuthPage_ProfileScreen')}
+        style={[styles.navButton, currentRoute === 'ProfileScreen' && { backgroundColor: '#7B61FF' }]}
+        onPress={() => navigation.navigate('ProfileScreen')}
       >
-        <Text><MaterialIcons name="home" size={24} color={currentRoute === 'AuthPage_ProfileScreen' ? "white" : "black"} /></Text>
+        <Text>
+          <MaterialIcons 
+            name="home" 
+            size={24} 
+            color={
+              currentRoute === 'ProfileScreen' 
+                ? (isDarkMode ? '#000' : '#fff')
+                : (isDarkMode ? '#fff' : '#000')
+            } 
+          />
+        </Text>
       </TouchableOpacity>
 
      <TouchableOpacity 
-        style={[styles.navButton, currentRoute === 'AuthPage_CalendarScreen' && { backgroundColor: '#7B61FF' }]}
-        onPress={() => navigation.navigate('AuthPage_CalendarScreen')}
+        style={[styles.navButton, currentRoute === 'CalendarScreen' && { backgroundColor: '#7B61FF' }]}
+        onPress={() => navigation.navigate('CalendarScreen')}
       >
-        <Text><MaterialIcons name="calendar-today" size={24} color={currentRoute === 'AuthPage_CalendarScreen' ? "white" : "black"} /></Text>
+        <Text>
+          <MaterialIcons 
+            name="calendar-today" 
+            size={24} 
+            color={
+              currentRoute === 'CalendarScreen' 
+                ? (isDarkMode ? '#000' : '#fff')
+                : (isDarkMode ? '#fff' : '#000')
+            } 
+          />
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity 
-        style={[styles.navButton, currentRoute === 'AuthPage_StatisticsScreen' && { backgroundColor: '#7B61FF' }]}
-        onPress={() => navigation.navigate('AuthPage_StatisticsScreen')}
+        style={[styles.navButton, currentRoute === 'StatisticsScreen' && { backgroundColor: '#7B61FF' }]}
+        onPress={() => navigation.navigate('StatisticsScreen')}
       >
-        <Text><MaterialIcons name="pie-chart" size={24} color={currentRoute === 'AuthPage_StatisticsScreen' ? "white" : "black"} /></Text> 
+        <Text>
+          <MaterialIcons 
+            name="pie-chart" 
+            size={24} 
+            color={
+              currentRoute === 'StatisticsScreen' 
+                ? (isDarkMode ? '#000' : '#fff')
+                : (isDarkMode ? '#fff' : '#000')
+            } 
+          />
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity 
-        style={[styles.navButton, currentRoute === 'AuthPage_NotificationScreen' && { backgroundColor: '#7B61FF' }]}
-        onPress={() => navigation.navigate('AuthPage_NotificationScreen')}
+        style={[styles.navButton, currentRoute === 'NotificationScreen' && { backgroundColor: '#7B61FF' }]}
+        onPress={() => navigation.navigate('NotificationScreen')}
       >
-        <Text><MaterialIcons name="notifications" size={24} color={currentRoute === 'AuthPage_NotificationScreen' ? "white" : "black"} /></Text>
+        <Text>
+          <MaterialIcons 
+            name="notifications" 
+            size={24} 
+            color={
+              currentRoute === 'NotificationScreen' 
+                ? (isDarkMode ? '#000' : '#fff')
+                : (isDarkMode ? '#fff' : '#000')
+            } 
+          />
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity 
-        style={[styles.navButton, currentRoute === 'AuthPage_SettingsScreen' && { backgroundColor: '#7B61FF' }]}
-        onPress={() => navigation.navigate('AuthPage_SettingsScreen')}
+        style={[styles.navButton, currentRoute === 'SettingsScreen' && { backgroundColor: '#7B61FF' }]}
+        onPress={() => navigation.navigate('SettingsScreen')}
       >
-        <Text><MaterialIcons name="settings" size={24} color={currentRoute === 'AuthPage_SettingsScreen' ? "white" : "black"} /></Text>
+        <Text>
+          <MaterialIcons 
+            name="settings" 
+            size={24} 
+            color={
+              currentRoute === 'SettingsScreen' 
+                ? (isDarkMode ? '#000' : '#fff')
+                : (isDarkMode ? '#fff' : '#000')
+            } 
+          />
+        </Text>
       </TouchableOpacity>
       
     </View>

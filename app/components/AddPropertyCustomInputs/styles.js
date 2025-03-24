@@ -42,13 +42,14 @@ const styles = StyleSheet.create({
   },
    borderedPicker: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderWidth: 0.5,
+    borderColor: '#000',
     borderRadius: 4,
     paddingLeft: 10, // Adjust to bring the text closer to the left
     marginRight: 5, // Adjust right margin if needed
     //height: 64,
     justifyContent: "center",
+    alignItems: "center",
 
   },
   picker: {
@@ -56,10 +57,11 @@ const styles = StyleSheet.create({
     height: 64,
     paddingRight: 10,    // Bring the dropdown arrow closer by adjusting right padding
     marginBottom: 0,     // Remove or reduce the margin
+    
   },
   textInput: {
     flex: 1, // Allow text input to take up remaining space in the container
-    backgroundColor: "transparent", // Remove background color for seamless design
+    backgroundColor: "#FFFFFF", // Remove background color for seamless design
   },
   description: {
     fontSize: 12,

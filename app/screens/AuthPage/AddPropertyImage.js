@@ -20,9 +20,11 @@ export default function AddPropertyImageScreen({ route }) {
   const navigation = useNavigation();
   const { sanitizedData } = route.params;
 
-  const [selectedImage, setSelectedImage] = useState("https://chrystal.seqinstitute.com/storage/images_url/2pE1Je4mXtaGZ7HgPXLe4L1UGdxoWyoBikpuOR4e.jpg");
-  const [imageUri, setImageUri] = useState("https://chrystal.seqinstitute.com/storage/images_url/2pE1Je4mXtaGZ7HgPXLe4L1UGdxoWyoBikpuOR4e.jpg");
+  const [selectedImage, setSelectedImage] = useState("");
+  const [imageUri, setImageUri] = useState("");
   const [loading, setLoading] = useState(false);
+
+  console.log('received sanitized data:', sanitizedData);
 
   const uriToFile = async (uri, fileName) => {
     try {
@@ -51,11 +53,16 @@ export default function AddPropertyImageScreen({ route }) {
         quality: 1,
       });
 
+      // Log the result to see the structure of the response
+      console.log("Image picker result:", result);
+
       if (!result.canceled) {
         const selectedImageUri = result.assets[0].uri;
         const imageFile = await uriToFile(selectedImageUri, "property_image.jpg");
-        setSelectedImage(imageFile);
+        setSelectedImage(selectedImageUri);
         setImageUri(selectedImageUri);
+        console.log("Selected Image:", selectedImageUri);
+        console.log("Selected Image URL/uri:", imageFile);
       }
     } catch (error) {
       Alert.alert("Error", "An unexpected error occurred while selecting the image.");
@@ -64,54 +71,59 @@ export default function AddPropertyImageScreen({ route }) {
   };
 
   const handleSubmit = async () => {
-    if (!selectedImage) {
-      Alert.alert("No Image Selected", "Please upload a property image.");
-      return;
-    }
-  
     try {
       const formDataToSubmit = new FormData();
-  
-      // Append the image file
-      //formDataToSubmit.append("image_url", selectedImage);
-      formDataToSubmit.append('image_url', {
-        uri: imageUri, // The URI of the image
-        type: selectedImage.type || 'image/jpeg', // The MIME type of the image
-        name: selectedImage.name || 'property_image',
+      
+      // Append the image file if selectedImage is provided
+      if (selectedImage) {
+        formDataToSubmit.append('image_url', {
+          uri: selectedImage,
+          type: 'image/jpeg',
+          name: 'property_image.jpg'
+        });
+      }
+
+      // Handle seller data separately
+      const { seller, ...otherData } = sanitizedData;
+
+      // Append all other data except seller
+      Object.keys(otherData).forEach((key) => {
+        if (key !== 'seller') {
+          formDataToSubmit.append(key, otherData[key]);
+        }
       });
-      // Flatten seller information and append it as top-level fields
-      const { seller, ...restData } = sanitizedData;
-      Object.keys(restData).forEach((key) => {
-        formDataToSubmit.append(key, restData[key]);
-      });
-  
-      Object.keys(seller).forEach((key) => {
-        formDataToSubmit.append(key, seller[key]);
-      });
-  
+
+      // If not using existing seller, append seller details
+      if (!sanitizedData.seller_already_exists) {
+        Object.keys(seller).forEach((key) => {
+          formDataToSubmit.append(key, seller[key]);
+        });
+      }
+
       // Debugging: Log the transformed FormData
       console.log("FormData being sent to the API:");
-      for (const [key, value] of formDataToSubmit.entries()) {
-        console.log(`${key}:`, value);
-      }
-  
+      const formDataObject = {};
+      formDataToSubmit.forEach((value, key) => {
+        formDataObject[key] = value instanceof File ? value.name : value;
+      });
+      console.log(JSON.stringify(formDataObject, null, 2));
+
       const response = await property.addProperty(formDataToSubmit);
-  
+
       if (response) {
-        Alert.alert("Success", "Your property details have been submitted.");
-        navigation.goBack();
+        Alert.alert("Success", "Your property details have been submitted. Wait for approval.");
+        navigation.navigate("ProfileScreen");
       } else {
         Alert.alert("Error", "Failed to add property. Please try again.");
       }
     } catch (error) {
-      Alert.alert("Error", "An error occurred while submitting the form.");
       console.error("Submission error:", error);
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "An error occurred while submitting the form."
+      );
     }
   };
-  
-  
-  
-  
 
   return (
     <AnimatedBackground>

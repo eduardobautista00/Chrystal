@@ -2,8 +2,10 @@ import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   propertyListContainer: {
-    marginTop: 30,
+    flex: 1,
+    backgroundColor: '#ECEAFF',
     paddingHorizontal: 10,
+    marginTop: 30,
   },
   propertyListHeader: {
     flexDirection: 'row',
@@ -66,6 +68,9 @@ const styles = StyleSheet.create({
   addressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    //borderWidth: 1,
+    paddingRight: 5,
+    overflow: 'hidden',
   },
   propertyAddress: {
     fontSize: 14,
@@ -89,6 +94,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 20,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 200,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#7B61FF',
+    textAlign: 'center',
+  }
 });
 
 export default styles;

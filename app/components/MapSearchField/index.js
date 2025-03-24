@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text } from 'react-native';
 import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import styles from './styles';
+import { useDarkMode } from '../../context/DarkModeContext';
 
 export default function MapSearchField({
   searchValue = '',
@@ -9,11 +10,11 @@ export default function MapSearchField({
   onClear,
   onSearchSubmit,
   onFilterToggle,
-  selectedFilters,
-  barangays = [], // Default to an empty array if barangays is not passed
-  selectedBarangay,
-  onBarangaySelect,
+  hasFilteredMarkers = false,
+  onFocus,
+  onBlur,
 }) {
+  const { isDarkMode } = useDarkMode();
   const [showFilters, setShowFilters] = useState(false); // Track filter tag visibility
   
   const handleFilterToggle = (filter) => {
@@ -27,22 +28,23 @@ export default function MapSearchField({
 
   return (
     <View style={styles.searchContainer}>
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, isDarkMode && { backgroundColor: '#1A1A1A', borderColor: '#fff', borderWidth: 1 }]}>
         <FontAwesome name="search" size={20} color="#aaa" style={styles.searchIcon} />
         <TextInput
-          style={styles.searchInput}
-          placeholder="Search"
-          value={searchValue} // Controlled component
-          onChangeText={onSearchChange} // Update the search value in parent
-          placeholderTextColor="#aaa"
-          onSubmitEditing={onSearchSubmit} 
+          style={[styles.searchInput, isDarkMode && { color: '#fff', backgroundColor: '#1A1A1A'}]}
+          placeholder={hasFilteredMarkers ? "Search within filtered results" : "Search"}
+          value={searchValue}
+          onChangeText={onSearchChange}
+          placeholderTextColor={isDarkMode ? '#fff' : '#aaa'}
+          onSubmitEditing={onSearchSubmit}
+          onFocus={onFocus}
+          onBlur={onBlur}
           returnKeyType="done"
         />
 
-
         {searchValue.length > 0 && (
           <TouchableOpacity onPress={onClear} style={styles.clearButton}>
-            <FontAwesome name="times-circle" size={30} color="#0068C8" />
+            <FontAwesome name="times-circle" size={30} color={isDarkMode ? '#fff' : '#ff0000'} />
           </TouchableOpacity>
         )}
 

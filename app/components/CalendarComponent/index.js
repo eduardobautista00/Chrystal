@@ -12,17 +12,20 @@ import {
   Platform,
   ScrollView,
   Dimensions,
+  Switch,
 } from 'react-native';
 import { Calendar, Agenda } from 'react-native-calendars';
 import YearlyCalendar from '../YearlyCalendar'
 import { Picker } from '@react-native-picker/picker';
+import DropDownPicker from 'react-native-dropdown-picker';
 import DateTimePicker from '@react-native-community/datetimepicker'; // Import DateTimePicker for time input
 import styles from './styles';
 import getEnvVars from '../../config/env';
 import { useAuth } from "../../context/AuthContext";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { theme } from '../../core/theme';
 import * as Notifications from 'expo-notifications';
-
+import { useDarkMode } from '../../context/DarkModeContext';
 
 export default function CalendarComponent() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Set default to today
@@ -33,7 +36,7 @@ export default function CalendarComponent() {
   const [editingTodoId, setEditingTodoId] = useState(null);
   const [editingIndex, setEditingIndex] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [time, setTime] = useState(new Date());
+  const [time, setTime] = useState(null);
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [properties, setProperties] = useState([]);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -42,17 +45,50 @@ export default function CalendarComponent() {
   const { apiUrl } = getEnvVars();
   const dateColorMap = useRef({});
   const { authState } = useAuth();
+  const { isDarkMode } = useDarkMode();
   const flatListRef = useRef(null); // Initialize flatListRef
   const screenWidth = Dimensions.get('window').width;
   const [selectedHour, setSelectedHour] = useState(null);
+  const [debounceTimeout, setDebounceTimeout] = useState(null);
 
   // New buyer todo form states
-  const [buyerFirstName, setBuyerFirstName] = useState('test buyer');
-  const [buyerLastName, setBuyerLastName] = useState('buyer test');
-  const [buyerAddress, setBuyerAddress] = useState('test address');
-  const [buyerPhone, setBuyerPhone] = useState('09276113969');
+  const [buyerFirstName, setBuyerFirstName] = useState('');
+  const [buyerLastName, setBuyerLastName] = useState('');
+  const [buyerAddress, setBuyerAddress] = useState('');
+  const [buyerPhone, setBuyerPhone] = useState('');
   const [selectedBuyerProperties, setSelectedBuyerProperties] = useState([]);
-  const [buyerTodoTitle, setBuyerTodoTitle] = useState('Test Buyer');
+  const [buyerTodoTitle, setBuyerTodoTitle] = useState('');
+  const [buyerAlreadyExists, setBuyerAlreadyExists] = useState(false);
+  const [buyerEmail, setBuyerEmail] = useState('');
+  const [buyerData, setBuyerData] = useState(null);
+
+  const [openProperty, setOpenProperty] = useState(false);
+  const [value, setValue] = useState(null);
+  
+  const [selectedProperties, setSelectedProperties] = useState([]);
+  const [openBuyerProperties, setOpenBuyerProperties] = useState(false);
+  const [timeConflictModalVisible, setTimeConflictModalVisible] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
+
+  const [openBuyer, setOpenBuyer] = useState(false);
+  const [selectedBuyer, setSelectedBuyer] = useState(null);
+  const [buyerItems, setBuyerItems] = useState([]);
+
+  // Function to fetch buyer data by email with debounce
+  const fetchBuyerDataByEmail = async (searchText) => {
+    try {
+      const response = await fetch(`${apiUrl}/buyers/search?email=${searchText}`);
+      const data = await response.json();
+      // Transform the data into the format required by DropDownPicker
+      const formattedItems = data.map(buyer => ({
+        label: buyer.email,
+        value: buyer.email
+      }));
+      setBuyerItems(formattedItems);
+    } catch (error) {
+      console.error('Error fetching buyer data:', error);
+    }
+  };
 
   // Load todos from AsyncStorage when the component mounts
   useEffect(() => {
@@ -105,7 +141,7 @@ export default function CalendarComponent() {
   
         // Filter properties based on the logged-in user's ID
         const userProperties = propertyArray.filter(
-          property => property.user_id === loggedInUserId
+          property => (property.user_id === loggedInUserId || property.user_id === 1) && property.status === 'available'
         );
   
         setProperties(userProperties);
@@ -116,6 +152,11 @@ export default function CalendarComponent() {
   
     fetchProperties();
   }, [authState?.user?.id]); // Dependency to re-run if the user's ID changes
+
+  const handleBuyerAlreadyExists = (value) => {
+    setBuyerAlreadyExists(value); // Set state directly based on the switch value
+    console.log('Buyer Already Exists:', value);
+  }
   
 
   const handleDatePress = (date) => {
@@ -192,133 +233,123 @@ export default function CalendarComponent() {
   };
   
 
+  const checkExistingTodoAtTime = (selectedDate, selectedTime, todos) => {
+    if (!todos[selectedDate]) return false;
+
+    const timeStr = selectedTime instanceof Date 
+      ? selectedTime.toTimeString().slice(0, 5)
+      : selectedTime;
+
+    return todos[selectedDate].some(todo => {
+      const todoTime = new Date(todo.deadline).toTimeString().slice(0, 5);
+      return todoTime === timeStr;
+    });
+  };
+
   const handleAddTodo = async () => {
     if (newTodo && selectedDate && selectedProperty && time) {
-      try {
-        // Fetch agent data and match the agent ID with the user ID
-        const agentResponse = await fetch(`${apiUrl}/agents`);
-        if (!agentResponse.ok) {
-          throw new Error('Failed to fetch agents');
-        }
-        const agentData = await agentResponse.json();
-  
-        const matchingAgent = agentData.agents.find(
-          agent => agent.user_id === authState.user.id
-        );
-        if (!matchingAgent) {
-          throw new Error('Agent not found');
-        }
-  
-        // Ensure the time is in HH:mm format
-        const formattedTime =
-          time instanceof Date
-            ? time.toTimeString().slice(0, 5) // Extract HH:mm from Date object
-            : time;
-  
-        // Combine selectedDate and formattedTime into the required format
-        const formattedDeadline = `${selectedDate}T${formattedTime}`; // YYYY-MM-DDTHH:mm
-  
-        const todoData = {
-          title: newTodo,
-          deadline: formattedDeadline, // Pass correctly formatted deadline
-          property_id: selectedProperty.id,
-          agent_id: matchingAgent.id, // Use the matching agent's ID
-          for_buyer: false,
-        };
-  
-        console.log('Request Data:', todoData);
-  
-        const response = await fetch(`${apiUrl}/to-do-list`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify(todoData),
-        });
-  
-        const contentType = response.headers.get('Content-Type');
-        if (contentType && contentType.includes('application/json')) {
-          const data = await response.json();
-  
-          if (!response.ok) {
-            console.error('API Error Response:', data);
-            throw new Error(`Failed to create To-Do: ${data.message || 'Unknown error'}`);
-          }
-  
-          console.log('Response Data:', data);
-          // Success feedback
-          Alert.alert('Success', 'To-Do Created Successfully');
-          resetForm(); // Reset the form after adding the todo
-          setModalVisible(false); // Close the modal
-          await fetchTodos(); // Fetch todos again to reflect the newly added todo
-        } else {
-          const rawResponse = await response.text();
-          console.error('Unexpected Response:', rawResponse);
-          throw new Error('Unexpected response format from server');
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        Alert.alert('Error', error.message || 'An error occurred while adding the To-Do');
+      const hasExistingTodo = checkExistingTodoAtTime(selectedDate, time, todos);
+      
+      if (hasExistingTodo) {
+        setPendingAction(() => processAddTodo);
+        setTimeConflictModalVisible(true);
+        return;
       }
+
+      processAddTodo();
     } else {
       Alert.alert('Error', 'Please fill in all fields');
     }
   };
 
-  
   const handleAddBuyerTodo = async () => {
-    if (loading) {
-      return; // Prevent multiple submissions while already loading
+    if (loading) return;
+
+    let errorMessages = [];
+
+    // Validation logic using if-else for buyerAlreadyExists
+    if (buyerAlreadyExists) {
+      // Collect error messages for fields when buyer already exists
+      if (!buyerEmail) {
+        errorMessages.push('Buyer Email');
+      }
+      if (!buyerTodoTitle) {
+        errorMessages.push('To-Do Title');
+      }
+      if (selectedBuyerProperties.length === 0) {
+        errorMessages.push('Property/s');
+      }
+    } else {
+      // Collect error messages for fields when buyer does not exist
+      if (!buyerFirstName) {
+        errorMessages.push('Buyer First Name');
+      }
+      if (!buyerLastName) {
+        errorMessages.push('Buyer Last Name');
+      }
+      if (!buyerPhone) {
+        errorMessages.push('Buyer Phone Number');
+      }
+      if (selectedBuyerProperties.length === 0) {
+        errorMessages.push('Property/s');
+      }
+      if (!buyerTodoTitle) {
+        errorMessages.push('To-Do Title');
+      }
+      if (!buyerEmail) {
+        errorMessages.push('Buyer Email');
+      }
     }
-  
-    if (
-      !buyerFirstName ||
-      !buyerLastName ||
-      !buyerPhone ||
-      selectedBuyerProperties.length === 0 ||
-      !buyerTodoTitle
-    ) {
-      Alert.alert('Error', 'Please fill in all required fields and select at least one property');
+
+    // If there are any error messages, alert the user
+    if (errorMessages.length > 0) {
+      Alert.alert('Please fill in all empty fields', errorMessages.join('\n'));
       return;
     }
-  
+
+    const hasExistingTodo = checkExistingTodoAtTime(selectedDate, time, todos);
+      
+    if (hasExistingTodo) {
+      setPendingAction(() => processBuyerTodo);
+      setTimeConflictModalVisible(true);
+      return;
+    }
+
+    processBuyerTodo();
+  };
+
+  // Helper function to process adding a regular todo
+  const processAddTodo = async () => {
     try {
-      setLoading(true); // Set loading to true when starting the request
-  
-      // Fetch agent data and match the agent ID with the user ID
       const agentResponse = await fetch(`${apiUrl}/agents`);
       if (!agentResponse.ok) {
         throw new Error('Failed to fetch agents');
       }
       const agentData = await agentResponse.json();
-  
-      const matchingAgent = agentData.agents.find(agent => agent.user_id === authState.user.id);
+
+      const matchingAgent = agentData.agents.find(
+        agent => agent.user_id === authState.user.id
+      );
       if (!matchingAgent) {
         throw new Error('Agent not found');
       }
-  
-      // Ensure the time is in HH:mm format
+
       const formattedTime = time instanceof Date
-        ? time.toTimeString().slice(0, 5) // Extract HH:mm from Date object
+        ? time.toTimeString().slice(0, 5)
         : time;
-  
-      // Combine selectedDate and formattedTime into the required format
-      const formattedDeadline = `${selectedDate}T${formattedTime}`; // YYYY-MM-DDTHH:mm
-      console.log('selected properties', selectedBuyerProperties);
-  
+
+      const formattedDeadline = `${selectedDate}T${formattedTime}`;
+
       const todoData = {
-        title: buyerTodoTitle,
-        deadline: formattedDeadline, // Pass the correctly formatted deadline
-        property_ids: selectedBuyerProperties, // Pass the selected properties as an array
-        agent_id: matchingAgent.id, // Use the matching agent's ID
-        for_buyer: true,
-        buyer_first_name: buyerFirstName,
-        buyer_last_name: buyerLastName,
-        buyer_address: buyerAddress,
-        buyer_phone_number: buyerPhone,
+        title: newTodo,
+        deadline: formattedDeadline,
+        property_id: selectedProperty,
+        agent_id: matchingAgent.id,
+        for_buyer: false,
       };
-  
+
+      console.log('Request Data:', todoData);
+
       const response = await fetch(`${apiUrl}/to-do-list`, {
         method: 'POST',
         headers: {
@@ -327,7 +358,95 @@ export default function CalendarComponent() {
         },
         body: JSON.stringify(todoData),
       });
-  
+
+      const contentType = response.headers.get('Content-Type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error('API Error Response:', data);
+          throw new Error(`Failed to create To-Do: ${data.message || 'Unknown error'}`);
+        }
+
+        console.log('Response Data:', data);
+        // Success feedback
+        Alert.alert('Success', 'To-Do Created Successfully');
+        resetForm(); // Reset the form after adding the todo
+        setSelectedProperty(null); // Reset the selected property
+        setValue(null);
+        setModalVisible(false); // Close the modal
+        await fetchTodos(); // Fetch todos again to reflect the newly added todo
+      } else {
+        const rawResponse = await response.text();
+        console.error('Unexpected Response:', rawResponse);
+        throw new Error('Unexpected response format from server');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      Alert.alert('Error', error.message || 'An error occurred while adding the To-Do');
+    }
+  };
+
+  // Helper function to process adding a buyer todo
+  const processBuyerTodo = async () => {
+    try {
+      setLoading(true);
+
+      const agentResponse = await fetch(`${apiUrl}/agents`);
+      if (!agentResponse.ok) {
+        throw new Error('Failed to fetch agents');
+      }
+      const agentData = await agentResponse.json();
+
+      const matchingAgent = agentData.agents.find(agent => agent.user_id === authState.user.id);
+      if (!matchingAgent) {
+        throw new Error('Agent not found');
+      }
+
+      const formattedTime = time instanceof Date
+        ? time.toTimeString().slice(0, 5)
+        : time;
+
+      const formattedDeadline = `${selectedDate}T${formattedTime}`;
+      console.log('selected properties', selectedBuyerProperties);
+
+      let todoData;
+
+      if (buyerAlreadyExists) {
+        todoData = {
+          title: buyerTodoTitle,
+          deadline: formattedDeadline,
+          property_ids: selectedBuyerProperties,
+          agent_id: matchingAgent.id,
+          for_buyer: true,
+          buyer_id: buyerData.buyer_id,
+          buyer_already_exists: buyerAlreadyExists,
+        };
+      } else {
+        todoData = {
+          title: buyerTodoTitle,
+          deadline: formattedDeadline,
+          property_ids: selectedBuyerProperties,
+          agent_id: matchingAgent.id,
+          for_buyer: true,
+          buyer_first_name: buyerFirstName,
+          buyer_last_name: buyerLastName,
+          buyer_address: buyerAddress,
+          buyer_phone_number: buyerPhone,
+          email: buyerEmail,
+          buyer_already_exists: buyerAlreadyExists,
+        };
+      }
+
+      const response = await fetch(`${apiUrl}/to-do-list`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(todoData),
+      });
+
       const responseText = await response.text();
       let data;
       try {
@@ -336,35 +455,13 @@ export default function CalendarComponent() {
         console.error('Failed to parse response:', responseText);
         throw new Error('Invalid JSON response from server');
       }
-  
+
       if (response.ok) {
-        // Notification creation (commented out)
-        // const notificationData = {
-        //   user_id: authState.user.id,
-        //   title: buyerTodoTitle,
-        //   message: `Your To-Do for Mr/Ms. ${buyerFirstName} ${buyerLastName} is near its deadline.`,
-        //   deadline: formattedDeadline,
-        // };
-  
-        // const notificationResponse = await fetch(`${apiUrl}/create-notifications`, {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //     Accept: 'application/json',
-        //   },
-        //   body: JSON.stringify(notificationData),
-        // });
-  
-        // if (!notificationResponse.ok) {
-        //   console.error('Failed to create notification:', await notificationResponse.text());
-        //   throw new Error('Notification creation failed');
-        // }
-  
         Alert.alert('Success', 'Buyer To-Do added successfully');
         // Reset buyer form
         resetForm();
-        setModalVisible(false); // Close the modal
-        await fetchTodos(); // Fetch todos again to reflect the newly added todo
+        setModalVisible(false);
+        await fetchTodos();
       } else {
         Alert.alert('Error', data.message || 'Failed to add buyer to-do');
       }
@@ -372,7 +469,7 @@ export default function CalendarComponent() {
       console.error('Error adding buyer to-do:', error);
       Alert.alert('Error', 'An error occurred while adding the buyer to-do');
     } finally {
-      setLoading(false); // Set loading to false when the request finishes
+      setLoading(false);
     }
   };
 
@@ -518,6 +615,7 @@ export default function CalendarComponent() {
     }
   };
 
+
   const dayComponent = ({ date, state }) => {
     const dayTodos = todos[date.dateString]; // Use the selected date's deadline_date to find todos
   
@@ -529,8 +627,11 @@ export default function CalendarComponent() {
       <TouchableOpacity
         style={[
           styles.dayContainer,
-          { borderRadius: 0 }, // Rectangular day cell
+          { borderRadius: 10 }, // Rectangular day cell
           state === 'selected' ? { backgroundColor: '#7B61FF' } : { backgroundColor: '#ECEAFF' },
+          isDarkMode ? { backgroundColor: '#1A1A1A' } : { backgroundColor: '#ECEAFF' },
+          { borderColor: isDarkMode ? '#ddd' : '#ddd' },
+          { borderWidth: isDarkMode ? 0.5 : 1 },
         ]}
         onPress={() => handleDatePress(date)} // Enable interaction for all dates
       >
@@ -546,6 +647,7 @@ export default function CalendarComponent() {
               isToday ? styles.todayText : {}, // Special styling for today's text
               state === 'selected' ? styles.selectedDay : {},
               //isExtraDay ? { color: '#B0B0B0' } : {}, // Grayed-out text for extra days
+              isDarkMode ? { color: '#ECEAFF' } : { color: '#1A1A1A' },
             ]}
           >
             {date.day}
@@ -576,7 +678,7 @@ export default function CalendarComponent() {
   
   const resetForm = () => {
     setNewTodo('');
-    setTime(new Date());
+    setTime(null);
     setSelectedProperty(null);
     setBuyerFirstName('');
     setBuyerLastName('');
@@ -584,6 +686,8 @@ export default function CalendarComponent() {
     setBuyerPhone('');
     setSelectedBuyerProperties([]);
     setBuyerTodoTitle('');
+    setBuyerAlreadyExists(false);
+    setBuyerEmail('');
   };
 
   useEffect(() => {
@@ -610,13 +714,36 @@ export default function CalendarComponent() {
         renderItem={({ item }) => (
           <View style={styles.todoItem}>
             <Text>{item.title}</Text>
-            <Text>{`Time: ${item.deadline_time}`}</Text>
+            <Text>
+              {`Time: ${item.deadline_time} - `}
+              <Text style={{ fontWeight: 'bold', color: item.status === 'done' ? 'green' : item.status === 'pending' ? 'orange' : item.status === 'due' ? 'red' : 'black' }}>
+                {item.status.toUpperCase()}
+              </Text>
+            </Text>
             <Text>{`Property: ${item.property_name || 'None'}`}</Text>
             
             {/* Action buttons for each To-Do */}
             <View style={styles.actions}>
-              <Button title="Edit" onPress={() => handleEditTodo(item.id)} />
-              <Button title="Delete" color="red" onPress={() => handleDeleteTodo(item.id)} />
+              <TouchableOpacity 
+                style={[styles.doneButton, item.status === 'done' || item.status === 'due' && styles.disabledDoneButton]} 
+                onPress={() => handleMarkAsDone(item.id)} 
+                disabled={item.status === 'done' || item.status === 'due'} // Disable if status is done
+              >
+                <Text style={styles.actionButtonText}>Done</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.editButton, item.status === 'done' || item.status === 'due' && styles.disabledEditButton]} 
+                onPress={() => handleEditTodo(item.id)} 
+                disabled={item.status === 'done' || item.status === 'due'} // Disable if status is done
+              >
+                <Text style={styles.actionButtonText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.deleteButton} 
+                onPress={() => handleDeleteTodo(item.id)} 
+              >
+                <Text style={styles.actionButtonText}>Delete</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -662,8 +789,9 @@ const data = useMemo(() => {
 
 if (loading) {
   return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: isDarkMode ? '#1A1A1A' : '#ECEAFF' }]}>
           <ActivityIndicator size="large" color="#0000ff" />
+          <Text style={styles.loadingText}>Loading calendar...</Text>
       </View>
   );
 }
@@ -703,12 +831,13 @@ const RenderItem = React.memo(({ item }) => {
           style={styles.dailyCalendarContainer}
       >
           <View style={styles.dateHeaderContainer}>
-              <View style={styles.dateContainer}>
-                  <Text style={styles.dateHeader}>{formattedDate.month}</Text>
-                  <Text style={styles.dateHeader}>{formattedDate.weekday}</Text>
+              <View style={[styles.dateContainer, { borderColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
+                  <Text style={[styles.dateHeader, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>{formattedDate.month}</Text>
+                  <Text style={[styles.dateHeader, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>{formattedDate.weekday}</Text>
                   <Text
                       style={[
                           styles.dateHeader,
+                          { color: isDarkMode ? '#FFFFFF' : '#000000' },
                           isToday && styles.todayDayIndicator,
                       ]}
                   >
@@ -768,9 +897,9 @@ const GridView = React.memo(({ todos, openModal }) => {
         const isSelected = selectedHour === hour; // Check if the row is selected
 
         return (
-          <View key={hour} style={styles.gridRow}>
-            <View style={styles.timeHeaderContainer}>
-              <Text style={styles.timeHeader}>{hourString}</Text>
+          <View key={hour} style={[styles.gridRow, { borderColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
+            <View style={[styles.timeHeaderContainer, { borderColor: isDarkMode ? '#FFFFFF' : '#000000' }]}>
+              <Text style={[styles.timeHeader, { color: isDarkMode ? '#FFFFFF' : '#000000' }]}>{hourString}</Text>
             </View>
             <TouchableOpacity style={[styles.todoMarkContainer, isSelected && styles.selectedRow]} onPress={() => openModal(hour)}>
               {todos.map((todo, index) => {
@@ -798,27 +927,75 @@ const GridView = React.memo(({ todos, openModal }) => {
   );
 });
 
+const handlePropertyChange = (value) => {
+  setSelectedProperties(value);
+};
+
+const handleBuyerPropertyChange = (value) => {
+  setSelectedBuyerProperties(value);
+};
+
+const handleMarkAsDone = async (todoId) => {
+  try {
+    // Fetch agents to get the agentId
+    const response = await fetch(`${apiUrl}/agents`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch agents");
+    }
+    const data = await response.json();
+
+    const matchingAgent = data.agents.find((agent) => agent.user_id === authState.user.id);
+    if (!matchingAgent) {
+      throw new Error("Agent not found");
+    }
+
+    const agentId = matchingAgent.id; // Get the agentId
+
+    const markResponse = await fetch(`${apiUrl}/todo/${todoId}/mark-as-done`, {
+      method: 'POST', // Corrected method to POST
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        status: 'done', // Set the status to 'done'
+        agent_id: agentId, // Pass the agent ID
+      }),
+    });
+
+    if (!markResponse.ok) {
+      const errorData = await markResponse.text();
+      throw new Error(`Failed to mark todo as done: ${errorData}`);
+    }
+
+    Alert.alert('Success', 'Todo marked as done');
+    await fetchTodos(); // Refresh the To-Do list
+  } catch (error) {
+    console.error('Error marking todo as done:', error);
+    Alert.alert('Error', 'An error occurred while marking the todo as done');
+  }
+};
 
   return (
-    <View style={styles.container}>
-      <View style={styles.mainTabContainer}>
+    <View style={[styles.container, { backgroundColor: isDarkMode ? '#1A1A1A' : '#ECEAFF' }]}>
+      <View style={[styles.mainTabContainer, { backgroundColor: isDarkMode ? '#1A1A1A' : '#ECEAFF' }]}>
         <TouchableOpacity 
           style={[styles.tab, mainTab === 'daily' && styles.selectedTab]}
           onPress={() => setMainTab('daily')}
         >
-          <Text style={[styles.tabText, mainTab === 'daily' && styles.selectedTabText]}>Daily</Text>
+          <Text style={[styles.tabText, { color: isDarkMode ? '#fff' : '#1A1A1A' }, mainTab === 'daily' && styles.selectedTabText]}>Daily</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tab, mainTab === 'monthly' && styles.selectedTab]}
           onPress={() => setMainTab('monthly')}
         >
-          <Text style={[styles.tabText, mainTab === 'monthly' && styles.selectedTabText]}>Monthly</Text>
+          <Text style={[styles.tabText, { color: isDarkMode ? '#fff' : '#1A1A1A' }, mainTab === 'monthly' && styles.selectedTabText]}>Monthly</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tab, mainTab === 'yearly' && styles.selectedTab]}
           onPress={() => setMainTab('yearly')}
         >
-          <Text style={[styles.tabText, mainTab === 'yearly' && styles.selectedTabText]}>Yearly</Text>
+          <Text style={[styles.tabText, { color: isDarkMode ? '#fff' : '#1A1A1A' }, mainTab === 'yearly' && styles.selectedTabText]}>Yearly</Text>
         </TouchableOpacity>
       </View>
 
@@ -826,11 +1003,6 @@ const GridView = React.memo(({ todos, openModal }) => {
 
       {mainTab === 'daily' && (
   <View style={{ flex: 1 }}>
-    {loading ? ( // Show loading indicator if data is still loading
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    ) : (
       <FlatList
         ref={flatListRef}
         data={data.length > 0 ? data : []} // Render only when data is available
@@ -850,24 +1022,40 @@ const GridView = React.memo(({ todos, openModal }) => {
         })}
         
       />
-    )}
   </View>
 )}
       {mainTab === 'monthly' && (
       <ScrollView 
       style={styles.scrollViewContainer} 
       contentContainerStyle={styles.scrollViewContentContainer}
-      showsVerticalScrollIndicator={false} // Hides vertical scroll indicator
-      showsHorizontalScrollIndicator={false} // Hides horizontal scroll indicator
+      showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
     >
     <Calendar
+      key={isDarkMode ? 'dark' : 'light'}
       current={new Date().toISOString().split('T')[0]}
       minDate={'2024-01-01'}
       maxDate={'2024-12-31'}
       onDayPress={handleDatePress}
       monthFormat={'MMMM yyyy'}
       hideExtraDays={false}
-      style={styles.calendarContainer}
+      style={[styles.calendarContainer, { backgroundColor: isDarkMode ? '#1A1A1A' : '#ECEAFF' }]}
+      theme={{
+        calendarBackground: isDarkMode ? '#1A1A1A' : '#ECEAFF',
+        textSectionTitleColor: isDarkMode ? '#FFFFFF' : '#000000',
+        monthTextColor: isDarkMode ? '#FFFFFF' : '#000000',
+        textMonthFontSize: 20,
+        textMonthFontWeight: 'bold',
+        arrowColor: isDarkMode ? '#FFFFFF' : '#000000',
+        arrowStyle: {
+          padding: 10,
+        },
+        'stylesheet.calendar.header': {
+          arrow: {
+            padding: 10,
+          },
+        }
+      }}
       markedDates={{
         ...Object.keys(todos).reduce((acc, date) => {
           acc[date] = { 
@@ -886,7 +1074,7 @@ const GridView = React.memo(({ todos, openModal }) => {
 
       {mainTab === 'yearly' && (
         <View>
-          <YearlyCalendar year={2025} />
+          <YearlyCalendar year={2025} isDarkMode={isDarkMode}/>
         </View>
       )}
 
@@ -928,49 +1116,56 @@ const GridView = React.memo(({ todos, openModal }) => {
                   onChangeText={setNewTodo}
                   style={styles.input}
                 />
-
+                
                 <TouchableOpacity
                   style={styles.input}
                   onPress={() => setShowTimePicker(true)}
                 >
-                  <Text>{time.toLocaleTimeString()}</Text>
+                  <Text style={[styles.timeText,!time && { color: '#00000060' }]}>{time ? time.toLocaleTimeString() : "Set Time"}</Text>
                 </TouchableOpacity>
 
                 {showTimePicker && (
                   <DateTimePicker
-                    value={time}
+                    value={time || new Date()}
                     mode="time"
                     display="default"
                     onChange={(event, selectedDate) => {
+                      setShowTimePicker(false);
                       if (selectedDate) {
                         setTime(selectedDate);
-                      } else {
-                        setTime(time);
                       }
-                      setShowTimePicker(false);
                     }}
                   />
                 )}
 
-                <Text style={styles.label}>Select Property</Text>
+                
                 {properties.length > 0 && (
-                  <Picker
-                    selectedValue={selectedProperty?.id}
-                    onValueChange={(itemValue) => {
-                      if (itemValue !== selectedProperty?.id) {
-                        const property = properties.find(p => p.id === itemValue);
-                        if (property) {
-                          setSelectedProperty(property);
-                        }
-                      }
-                    }}
-                    style={styles.picker}
-                    itemStyle={styles.pickerItem}
-                  >
-                    {properties.map((property, index) => (
-                      <Picker.Item key={index} label={property.property_name} value={property.id} />
-                    ))}
-                  </Picker>
+                  <>
+                    {console.log('Properties:', properties)}
+                    <DropDownPicker
+                      open={openProperty}
+                      value={selectedProperty}
+                      items={properties.map(property => ({
+                        label: property.property_name,
+                        value: property.id,
+                      }))}
+                      setOpen={setOpenProperty}
+                      setValue={(value) => {
+                        // Toggle selection
+                        setSelectedProperty(value);
+                      }}
+                      setItems={setProperties}
+                      searchable={true}
+                      searchPlaceholder="Search for a property"
+                      placeholderStyle={styles.placeholderStyle}
+                      placeholder={selectedProperty ? selectedProperty.property_name : 'Select a Property'}
+                      style={styles.dropdown}
+                      dropDownContainerStyle={styles.dropDownContainer}
+                      searchTextInputStyle={styles.searchTextInput}
+                      searchContainerStyle={styles.searchContainer}
+
+                    />
+                  </>
                 )}
 
                 <TouchableOpacity
@@ -987,6 +1182,8 @@ const GridView = React.memo(({ todos, openModal }) => {
                   onPress={() => {
                     resetForm();
                     setModalVisible(false);
+                    setSelectedProperty(null);
+                    setValue(null);
                     setEditingTodoId(null);
                   }}
                 >
@@ -1000,7 +1197,7 @@ const GridView = React.memo(({ todos, openModal }) => {
             ) : (
               // Buyer tab content
               <>
-                <ScrollView style={{ height: 300, marginBottom: 10 }}>
+                <ScrollView style={{maxHeight: 200, marginBottom: 10}}>
                   <TextInput
                     placeholder="Add or Edit To-Do"
                     value={buyerTodoTitle}
@@ -1012,99 +1209,128 @@ const GridView = React.memo(({ todos, openModal }) => {
                     style={styles.input}
                     onPress={() => setShowTimePicker(true)}
                   >
-                    <Text>{time.toLocaleTimeString()}</Text>
+                    <Text style={[styles.timeText,!time && { color: '#00000060' }]}>{time ? time.toLocaleTimeString() : "Set Time"}</Text>
                   </TouchableOpacity>
 
                   {showTimePicker && (
                     <DateTimePicker
-                      value={time}
+                      value={time || new Date()}
                       mode="time"
                       display="default"
                       onChange={(event, selectedDate) => {
+                        setShowTimePicker(false);
                         if (selectedDate) {
                           setTime(selectedDate);
-                        } else {
-                          setTime(time);
                         }
-                        setShowTimePicker(false);
                       }}
                     />
                   )}
 
-                  <TextInput
-                    placeholder="Buyer First Name"
-                    value={buyerFirstName}
-                    onChangeText={setBuyerFirstName}
-                    style={styles.input}
-                  />
-                  <TextInput
-                    placeholder="Buyer Last Name"
-                    value={buyerLastName}
-                    onChangeText={setBuyerLastName}
-                    style={styles.input}
-                  />
-                  <TextInput
-                    placeholder="Buyer Address"
-                    value={buyerAddress}
-                    onChangeText={setBuyerAddress}
-                    style={styles.input}
-                    multiline
-                  />
-                  <TextInput
-                    placeholder="Buyer Phone Number"
-                    value={buyerPhone}
-                    onChangeText={setBuyerPhone}
-                    style={styles.input}
-                    keyboardType="phone-pad"
-                  />
+                  {/* Toggle for buyer already exists */}
+                  <View style={styles.toggleContainer}>
+                    <Text>Existing Buyer?</Text>
+                    <Switch
+                      value={buyerAlreadyExists}
+                      onValueChange={handleBuyerAlreadyExists}
+                      trackColor={{ false: '#c0c0c0', true: '#7B61FF' }}
+                      thumbColor={buyerAlreadyExists ? '#7B61FF' : '#7B61FF'}
+                      ios_backgroundColor="#3e3e3e"
+                    />
+                  </View>
 
-                  <Text style={styles.label}>Select Properties</Text>
-                  {properties.map((property) => (
-                    <TouchableOpacity
-                      key={property.id}
-                      style={[
-                        styles.propertyItem,
-                        {
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          padding: 10,
-                          marginVertical: 5,
-                        }
-                      ]}
-                      onPress={() => {
-                        setSelectedBuyerProperties(prev => {
-                          if (prev.includes(property.id)) {
-                            return prev.filter(id => id !== property.id);
-                          } else {
-                            return [...prev, property.id];
-                          }
-                        });
-                      }}
-                    >
-                      <View style={[
-                        styles.checkbox,
-                        {
-                          width: 20,
-                          height: 20,
-                          borderWidth: 2,
-                          borderColor: '#7B61FF',
-                          marginRight: 10,
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                        }
-                      ]}>
-                        {selectedBuyerProperties.includes(property.id) && (
-                          <View style={{
-                            width: 12,
-                            height: 12,
-                            backgroundColor: '#7B61FF',
-                          }} />
-                        )}
-                      </View>
-                      <Text>{property.property_name}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  {!buyerAlreadyExists && (
+                    <>
+                      <TextInput
+                        placeholder="Buyer Email"
+                        value={buyerEmail}
+                        onChangeText={setBuyerEmail}
+                        style={styles.input}
+                      />
+                      <TextInput
+                        placeholder="Buyer First Name"
+                        value={buyerFirstName}
+                        onChangeText={setBuyerFirstName}
+                        style={styles.input}
+                      />
+                      <TextInput
+                        placeholder="Buyer Last Name"
+                        value={buyerLastName}
+                        onChangeText={setBuyerLastName}
+                        style={styles.input}
+                      />
+                      <TextInput
+                        placeholder="Buyer Address"
+                        value={buyerAddress}
+                        onChangeText={setBuyerAddress}
+                        style={styles.input}
+                        multiline
+                      />
+                      <TextInput
+                        placeholder="Buyer Phone Number"
+                        value={buyerPhone}
+                        onChangeText={setBuyerPhone}
+                        style={styles.input}
+                        keyboardType="phone-pad"
+                      />
+                    </>
+                  )}
                 </ScrollView>
+
+                {buyerAlreadyExists && (
+                    <DropDownPicker
+                      style={[styles.dropdown, { marginBottom: 10, zIndex: 2000 }]}
+                      open={openBuyer}
+                      value={selectedBuyer}
+                      items={buyerItems}
+                      setOpen={setOpenBuyer}
+                      setValue={setSelectedBuyer}
+                      setItems={setBuyerItems}
+                      placeholder="Select a buyer"
+                      placeholderStyle={styles.placeholderStyle}
+                      searchable={true}
+                      searchPlaceholder="Search buyers"
+                      dropDownContainerStyle={[styles.dropDownContainer, { zIndex: 2000 }]}
+                      searchTextInputStyle={styles.searchTextInput}
+                      searchContainerStyle={styles.searchContainer}
+                      onChangeSearchText={(text) => {
+                        fetchBuyerDataByEmail(text);
+                      }}
+                    />
+                )}
+                
+
+                <DropDownPicker
+                    mode="BADGE"
+                    badgeDotColors={selectedBuyerProperties.map(id => {
+                      const property = properties.find(prop => prop.id === id);
+                      return property && property.pin_color ? property.pin_color : '#ff0000';
+                    })}
+                    multiple={true}
+                    min={0}
+                    max={10}
+                    open={openBuyerProperties}
+                    value={selectedBuyerProperties}
+                    items={properties.map(property => ({
+                      label: property.property_name,
+                      value: property.id,
+                    }))}
+                    setOpen={setOpenBuyerProperties}
+                    setValue={(value) => {
+                      setSelectedBuyerProperties(value);
+                    }}
+                    setItems={setProperties}
+                    searchable={true}
+                    searchPlaceholder="Search for properties"
+                    placeholder="Select Properties"
+                    placeholderStyle={styles.placeholderStyle}
+                    style={[styles.dropdown, { marginTop: 10, zIndex: 1000 }]}
+                    searchTextInputStyle={styles.searchTextInput}
+                    searchTextInputContainerStyle={styles.searchTextInputContainer}
+                    searchContainerStyle={styles.searchContainer}
+                    dropDownContainerStyle={[styles.dropDownContainer, { zIndex: 1000 }]}
+                    selectedItemLabelStyle={styles.selectedItemLabel}
+                    selectedItemContainerStyle={styles.selectedItemContainer}
+                  />
 
                 <TouchableOpacity
                   style={styles.addButton}
@@ -1129,6 +1355,44 @@ const GridView = React.memo(({ todos, openModal }) => {
                 </View>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Time Conflict Modal */}
+      <Modal
+        visible={timeConflictModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setTimeConflictModalVisible(false)}
+      >
+        <View style={styles.timeConflictModalContainer}>
+          <View style={styles.timeConflictModalContent}>
+            <Text style={styles.timeConflictModalTitle}>Time Conflict</Text>
+            <Text style={styles.timeConflictModalMessage}>
+              A todo already exists at this time. Would you like to choose a different time?
+            </Text>
+            
+            <View style={styles.timeConflictButtonContainer}>
+              <TouchableOpacity
+                style={[styles.timeConflictButton, styles.timeConflictPrimaryButton]}
+                onPress={() => {
+                  setTimeConflictModalVisible(false);
+                  setShowTimePicker(true);
+                }}
+              >
+                <Text style={styles.timeConflictButtonText}>Choose Different Time</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.timeConflictButton, styles.timeConflictCancelButton]}
+                onPress={() => setTimeConflictModalVisible(false)}
+              >
+                <Text style={[styles.timeConflictButtonText, styles.timeConflictCancelText]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

@@ -4,18 +4,20 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    alignSelf: 'center',
     marginTop: 20,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
   },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 100,
-    marginRight: 15,
+    marginLeft: 50,
   },
   profileInfo: {
     flex: 1,
     marginLeft: 10,
+    paddingLeft: 30,
   },
   name: {
     fontSize: 20,

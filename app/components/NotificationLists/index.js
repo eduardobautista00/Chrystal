@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Modal, Button, ActivityIndicator, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import styles from './styles';
 import { useAuth } from "../../context/AuthContext";
@@ -29,24 +29,27 @@ moment.updateLocale('en', {
   },
 });
 
-export default function NotificationList() {
+export default function NotificationList({ isDarkMode }) {
   const [notifications, setNotifications] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const { authState } = useAuth();
   const { apiUrl } = getEnvVars();
   const [currentTime, setCurrentTime] = useState(moment());
+  const [loading, setLoading] = useState(true);
 
   const saveNotificationsDebounced = debounce((updatedNotifications) => {
     AsyncStorage.setItem('notifications', JSON.stringify(updatedNotifications));
   }, 500);
 
   const processNotification = (data) => {
+    console.log('Processing notification data:', data);
     const validatedNotification = {
       ...data,
       deadline: data.deadline && moment(data.deadline, 'MMMM D, YYYY h:mm A', true).isValid()
         ? moment(data.deadline, 'MMMM D, YYYY h:mm A')
         : null,
+      type: data.type || 'regular',
     };
 
     setNotifications((prevNotifications) => {
@@ -78,12 +81,16 @@ export default function NotificationList() {
       }
 
       const data = await response.json();
-      const sortedNotifications = data.sort((a, b) => moment(b.created_at).diff(moment(a.created_at)));
+      // Filter notifications for the logged-in user
+      const userNotifications = data.filter(notification => notification.user_id === authState.user.id);
+      const sortedNotifications = userNotifications.sort((a, b) => moment(b.created_at).diff(moment(a.created_at)));
 
       setNotifications(sortedNotifications);
       await AsyncStorage.setItem('notifications', JSON.stringify(sortedNotifications));
     } catch (error) {
       console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -108,48 +115,62 @@ export default function NotificationList() {
     loadNotifications();
 
     // Initialize Pusher
-  const pusher = new Pusher('b146fd66074ecc4f8ea4', {
-    cluster: 'ap1',
-    encrypted: true,
-  });
-
-  const channel = pusher.subscribe(`agent.${authState.user.id}`);
-
-  channel.bind('todo-notif', async (data) => {
-    console.log('Pusher Notification received:', data);
-    
-    // Process and store notification
-    processNotification(data);
-
-    // 🔔 Trigger a local notification
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: data.title || 'New Notification',
-        body: data.message || 'You have a new notification.',
-        data: data, // Store full notification data
-      },
-      trigger: null, // Show immediately
+    const pusher = new Pusher('b146fd66074ecc4f8ea4', {
+      cluster: 'ap1',
+      encrypted: true,
     });
-  });
 
-  return () => {
-    //channel.unbind_all();
-    //pusher.unsubscribe(`agent.${authState.user.id}`);
-  };
-}, [authState?.user?.id]);
+    const channel = pusher.subscribe(`agent.${authState.user.id}`);
+    const channel1 = pusher.subscribe(`property.${authState.user.id}`);
 
-useEffect(() => {
-  const backgroundListener = Notifications.addNotificationReceivedListener(async (notification) => {
-    console.log('Background notification received:', notification);
+    // Set notification handler
+    Notifications.setNotificationHandler({
+      handleNotification: async () => {
+        const currentBadge = await Notifications.getBadgeCountAsync();
+        await Notifications.setBadgeCountAsync(currentBadge + 1);
+        
+        return {
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+          icon: 'assets/Notification-icon.png'
+        };
+      },
+    });
 
-    // Process and store notification
-    processNotification(notification.request.content.data);
-  });
+    // Listen for notifications
+    const subscription = Notifications.addNotificationReceivedListener(notification => {
+      console.log('Notification received:', notification);
+      processNotification(notification.request.content.data);
+    });
 
-  return () => {
-    Notifications.removeNotificationSubscription(backgroundListener);
-  };
-}, []);
+    // Add background notification listener
+    const backgroundListener = Notifications.addNotificationReceivedListener(async (notification) => {
+      console.log('Background notification received:', notification);
+      // Process and store notification
+      processNotification(notification.request.content.data);
+    });
+
+    channel.bind('todo-notif', async (data) => {
+      console.log('Pusher Notification received:', data);
+      processNotification(data);
+      await scheduleNotification(data);
+    });
+
+    channel1.bind('approve-notif', async (data) => {
+      console.log('Pusher Approval Notification received:', data);
+      processNotification(data);
+      await scheduleNotification(data);
+    });
+
+    return () => {
+      // Clean up listeners
+      subscription.remove();
+      Notifications.removeNotificationSubscription(backgroundListener);
+      //channel.unbind_all();
+      //pusher.unsubscribe(`agent.${authState.user.id}`);
+    };
+  }, [authState?.user?.id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -199,18 +220,64 @@ useEffect(() => {
     }
   };
 
+  const scheduleNotification = async (data) => {
+    const notificationTitle = data.type === 'follow-up' 
+      ? `Follow-up: ${data.title}` 
+      : data.title || 'New Notification';
+      
+    const notificationBody = data.type === 'approve' 
+      ? data.message 
+      : `Your task for ${data.message} is due tomorrow`;
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: notificationTitle,
+        body: notificationBody || 'You have a new notification.',
+        data: data, // Store full notification data
+      },
+      trigger: null, // Show immediately
+    });
+  };
+
+  // Commented out the sample notification function for testing
+  /*
+  const sendSampleNotification = async () => {
+    const sampleData = {
+      title: "Sample Notification",
+      message: "This is a test notification to check if everything is working.",
+      // Add any other data you want to include
+    };
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: sampleData.title,
+        body: sampleData.message,
+        data: sampleData, // Store full notification data
+      },
+      trigger: null, // Show immediately
+    });
+
+    console.log('Sample notification sent');
+  };
+  */
+
   const renderNotification = ({ item }) => {
     const timeAgo = moment(item.created_at).local().fromNow();
     const isRead = item.status === 'read';
+    const displayTitle = item.type === 'follow-up' ? `Follow-up: ${item.title}` : item.title;
 
     return (
       <TouchableOpacity
-        style={[styles.notificationContainer, isRead ? styles.readNotification : styles.unreadNotification]}
+        style={[
+          styles.notificationContainer,
+          !isDarkMode ? (isRead ? styles.readNotification : styles.unreadNotification) :
+          (isRead ? styles.darkModeReadNotification : styles.darkModeNotification)
+        ]}
         onPress={() => handleNotificationPress(item.id)}
       >
         <View style={styles.textContainer}>
-          <Text style={styles.title}>{item.title}</Text>
-          <Text style={[styles.timeAgo, isRead ? styles.readTimeAgo : styles.unreadTimeAgo]}>
+          <Text style={[styles.title, isDarkMode && { color: '#fff' }]}>{displayTitle}</Text>
+          <Text style={[styles.timeAgo, isRead ? styles.readTimeAgo : styles.unreadTimeAgo, isDarkMode && { color: '#fff' }]}>
             {timeAgo}
           </Text>
         </View>
@@ -219,39 +286,52 @@ useEffect(() => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Notifications</Text>
-      <FlatList
-        data={notifications}
-        renderItem={renderNotification}
-        keyExtractor={(item, index) => item.id ? item.id.toString() : `key-${index}`}
-        ListEmptyComponent={<Text style={styles.emptyText}>No notifications available</Text>}
-      />
+    <View style={[styles.container, isDarkMode && { backgroundColor: '#1A1A1A' }]}>
+      <Text style={[styles.header, isDarkMode && { color: '#fff' }]}>Notifications</Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#7B61FF" />
+          <Text style={styles.loadingText}>Loading notifications...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={notifications}
+          renderItem={renderNotification}
+          keyExtractor={(item, index) => item.id ? item.id.toString() : `key-${index}`}
+          ListEmptyComponent={<Text style={[styles.emptyText, isDarkMode && { color: '#fff' }]}>No notifications available</Text>}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+      {/* Commented out the button to send a sample notification */}
+      {/* <Button title="Send Sample Notification" onPress={sendSampleNotification} /> */}
       <Modal animationType="slide" transparent={true} visible={isModalVisible}>
-  {selectedNotification && (
-    <View style={styles.modalContainer}>
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>{selectedNotification.title}</Text>
-        <Text style={styles.modalMessage}>{selectedNotification.message}</Text>
-        {selectedNotification.deadline && (
-          <View style={styles.deadlineContainer}>
-            <Text style={styles.modalDeadlineText}>Deadline:</Text>
-            <Text style={styles.modalDeadlineLabel}>
-              Date: {moment(selectedNotification.deadline).format('MMM D, YYYY')}
-            </Text>
-            <Text style={styles.modalDeadlineLabel}>
-              Time: {moment(selectedNotification.deadline).format('h:mm a')}
-            </Text>
+        {selectedNotification && (
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                {selectedNotification.type === 'follow-up' 
+                  ? `Follow-up: ${selectedNotification.title}`
+                  : selectedNotification.title}
+              </Text>
+              <Text style={styles.modalMessage}>{selectedNotification.message}</Text>
+              {selectedNotification.deadline && (
+                <View style={styles.deadlineContainer}>
+                  <Text style={styles.modalDeadlineText}>Deadline:</Text>
+                  <Text style={styles.modalDeadlineLabel}>
+                    Date: {moment(selectedNotification.deadline).format('MMM D, YYYY')}
+                  </Text>
+                  <Text style={styles.modalDeadlineLabel}>
+                    Time: {moment(selectedNotification.deadline).format('h:mm a')}
+                  </Text>
+                </View>
+              )}
+              <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+                <Text style={styles.buttonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
-        <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-          <Text style={styles.buttonText}>Close</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  )}
-</Modal>
-
+      </Modal>
     </View>
   );
 }

@@ -138,5 +138,31 @@ const styles = StyleSheet.create({
     unreadTimeAgo: {
       color: '#000', // Black for unread
     },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    loadingText: {
+      marginTop: 10,
+      fontSize: 16,
+      color: '#7B61FF',
+    },
+    darkModeNotification: {
+      backgroundColor: '#1A1A1A',
+      borderLeftColor: '#7B61FF',
+      borderLeftWidth: 5,
+      borderRightColor: '#fff',
+      borderRightWidth: 0.5,
+      borderBottomColor: '#fff',
+      borderBottomWidth: 0.5,
+      borderTopColor: '#fff',
+      borderTopWidth: 0.5,
+    },
+    darkModeReadNotification: {
+      backgroundColor: '#1A1A1A',
+      borderColor: '#fff',
+      borderWidth: 0.5,
+    },
   });
   export default styles;

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, Alert } from "react-native";
 import { Text } from "react-native-paper";
 import { useData } from "../../context/DataContext";
 
@@ -9,19 +9,34 @@ import Button from "../../components/Button";
 import TextInput from "../../components/TextInput";
 
 export default function ResetPasswordScreen({ navigation }) {
-  const [email, setEmail] = useState({ value: "kristianedy2810@gmail.com", error: "" });
+  const [email, setEmail] = useState({ value: "", error: "" });
   const { resetPasswordOtp } = useData(); // Access resetPassword from context
 
   const sendResetPasswordEmail = async () => {
+    // Validate email is not empty
+    if (!email.value) {
+      setEmail({ value: email.value, error: "Email is required." }); // Set error message in email state
+      return; // Exit the function if the email is empty
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.value)) {
+      setEmail({ value: email.value, error: "Invalid email format." }); // Set error message in email state
+      return; // Exit the function if the email is invalid
+    }
+
     try {
       const responseData = await resetPasswordOtp.resetPasswordOTP(email.value);
-      console.log("API Response:", responseData.message); // Log the response to debug
+      console.log("API Response:", responseData.error); // Log the response to debug
   
       // Check if response is a valid object and contains the expected success status
       if (responseData && (responseData.success || responseData.message === "OTP sent to your email.")) {
         navigation.navigate("ResetLinkScreen", { email: email.value });
+      } else if (responseData.error === 'User not found.') {
+        setEmail({ value: email.value, error: responseData.error }); // Set error message in email state
       } else {
-        console.warn("Password reset failed:", responseData?.error || 'Unknown error');
+        setEmail({ value: email.value, error: "Password reset failed: " + (responseData?.error || 'Unknown error') }); // Set error message in email state
       }
     } catch (error) {
       console.error("Error sending reset password email:", error);
@@ -40,18 +55,20 @@ export default function ResetPasswordScreen({ navigation }) {
 
       <Text style={styles.header}>Forgot Password?</Text>
       <Text style={styles.subHeader}>
-        That’s okay, it happens! Enter your email below to reset your password.
+        That's okay, it happens! Enter your email below to reset your password.
       </Text>
 
       <TextInput
         label="Enter Email"
         returnKeyType="done"
         value={email.value}
-        onChangeText={(text) => setEmail({ value: text })}
+        onChangeText={(text) => setEmail({ value: text, error: "" })}
+        error={!!email.error}
+        errorText={email.error}
         autoCapitalize="none"
         textContentType="emailAddress"
         keyboardType="email-address"
-        style={styles.input}
+        style={[styles.input, email.error ? { borderColor: 'red'} : {}]}
       />
 
       <Button mode="contained" onPress={sendResetPasswordEmail} style={styles.submitButton}>

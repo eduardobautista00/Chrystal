@@ -23,7 +23,7 @@ export default function LoginScreen({ route, navigation }) {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [password, setPassword] = useState({ value: "", error: "" });
   const [rememberMe, setRememberMe] = useState(false);
-  const { authState } = useAuth();
+  const { authState, login } = useAuth();
   const { someParam } = route.params;
 
   // Load saved credentials on initial render
@@ -77,12 +77,28 @@ export default function LoginScreen({ route, navigation }) {
       } else {
         await AsyncStorage.removeItem("credentials"); // Clear credentials if "Remember Me" is unchecked
       }
-      await authState.login(email.value, password.value);
+
+      const response = await login(email.value, password.value);
+      console.log('response', response);
+
+      // Check if the response contains an error
+      if (response?.error) {
+        Alert.alert("Login Failed", response.error || "Invalid credentials");
+        return;
+      }
+
+      // Check if the response contains the unverified message
+      if (response?.message === "You are not yet verified. Please wait for admin approval.") {
+        Alert.alert("Login Failed", response.message);
+        return;
+      }
+
     } catch (error) {
-      console.error("Login failed:", error.response?.data || error.message);
-      Alert.alert("Login Failed", error.response?.data?.message || "Please try again.");
+      console.error("Login failed:", error.message); // Log the error message
+      Alert.alert("Login Failed", "An unexpected error occurred. Please try again."); // Show alert for unexpected errors
     }
   };
+  
 
   return (
     <AnimatedBackground>

@@ -4,35 +4,46 @@ import { theme } from "../../core/theme";
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    marginTop: 15,    
-    // flexDirection: 'row', // Align icon and input in a row
-    // alignItems: 'center', // Center vertically
+    //marginVertical: 12,
+    marginTop: 12,
   },
-  phoneInputContainer: {
+  inputRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 5,
+    width: '100%',
+    marginBottom: '-5',
+  },
+  pickerContainer: {
+    flex: 1,
     height: 64,
-
-
-},
-countryCodePicker: {
-  flex: 0.35, // 30% width
-  paddingHorizontal: 5,
-},
-phoneNumberContainer: {
-  flex: 0.7, // 70% width
-  
-  
-},
-phoneNumberInput: {
-  textAlignVertical: 'center',
-  height: 63,
-  marginTop: -6,
-  
-},
+    borderWidth: 0.5,
+    borderColor: '#000',
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+  },
+  picker: {
+    height: '100%',
+    width: '100%',
+  },
+  inputContainer: {
+    //width: '55%',
+    flex: 1.5,
+    height: 64,
+    marginBottom: 15,
+  },
+  input: {
+    height: 64,
+  },
+  errorBorder: {
+    borderColor: theme.colors.error,
+  },
+  errorText: {
+    color: theme.colors.error,
+    fontSize: 14,
+    paddingTop: 4,
+  },
   description: {
     fontSize: 13,
     color: theme.colors.secondary,
@@ -41,14 +52,6 @@ phoneNumberInput: {
   label: {
     color: theme.colors.labels,
   },
-  errorBorder: {
-    borderColor: theme.colors.error,
-},
-errorText: {
-    marginVertical: 10,
-    color: theme.colors.error,
-},
 });
-
 
 export default styles;

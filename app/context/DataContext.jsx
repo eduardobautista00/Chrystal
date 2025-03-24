@@ -31,73 +31,80 @@ export const DataContextProvider = ({ children }) => {
   //const registerUser = (data) => registerDispatch({ type: 'REGISTER_REQUEST' });
 
   // Register user function
-  const registerUser = (data) => {
+  const registerUser = async (data) => {
     console.log("Registering user with data:", data); // Log the data being sent
     registerDispatch({ type: 'REGISTER_REQUEST' });
-  
-    fetch(`${apiUrl}/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        return response.json();
-      })
-      .then((responseData) => {
-        console.log("Full API response:", responseData); // Log the full response to examine its structure
-  
-        // Check for success based on the message as a fallback
-        if (responseData.success || responseData.message === "User registered successfully") {
-          const userData = responseData.data || responseData.user || responseData.result;
-          if (userData) {
-            registerDispatch({ type: 'REGISTER_SUCCESS',  payload: responseData.user });
-            console.log("Registration successful, user data:", responseData.user);
-          } else {
-            console.warn("Registration succeeded but user data is missing in the response.");
-            registerDispatch({ type: 'REGISTER_SUCCESS', payload: null });
-          }
-        } else {
-          console.warn("Registration failed with message:", responseData.message);
-          registerDispatch({ type: 'REGISTER_FAILURE', payload: responseData.message });
-        }
-      })
-      .catch((error) => {
-        console.error("Registration error:", error.message); // Log any network or unexpected errors
-        registerDispatch({ type: 'REGISTER_FAILURE', payload: error.message });
+
+    try {
+      const response = await fetch(`${apiUrl}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
+
+      // Check if the response is OK (status 200-299)
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API error response:", errorData);
+        return { success: false, message: errorData.message || response.statusText };
+      }
+
+      const responseData = await response.json();
+      console.log("Full API response:", responseData); // Log the full response to examine its structure
+
+      if (responseData.success || responseData.message === "User registered successfully") {
+        const userData = responseData.data || responseData.user || responseData.result;
+        if (userData) {
+          registerDispatch({ type: 'REGISTER_SUCCESS', payload: responseData.user });
+          console.log("Registration successful, user data:", responseData.user);
+          return { success: true, user: responseData.user }; // Return success response
+        } else {
+          console.warn("Registration succeeded but user data is missing in the response.");
+          registerDispatch({ type: 'REGISTER_SUCCESS', payload: null });
+          return { success: true, user: null }; // Return success with null user
+        }
+      } else {
+        console.warn("Registration failed with message:", responseData.message);
+        registerDispatch({ type: 'REGISTER_FAILURE', payload: responseData.message });
+        return { success: false, message: responseData.message }; // Return failure response
+      }
+    } catch (error) {
+      console.error("Registration error:", error.message); // Log any network or unexpected errors
+      registerDispatch({ type: 'REGISTER_FAILURE', payload: error.message });
+      return { success: false, message: error.message }; // Return structured error response
+    }
   };
   
   
 
   // Register agent function
-  const registerAgent = (agentInfo) => {
+  const registerAgent = async (agentInfo) => {
     registerDispatch({ type: 'REGISTER_REQUEST' });
 
-    // Call your API for agent registration
-    fetch(`${apiUrl}/register-agent`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(agentInfo),
-    })
-      .then((response) => response.json())
-      .then((responseData) => {
-        console.log("Full API response:", responseData); // Log the full response to examine its structure
-        if (responseData.success) {
-          registerDispatch({ type: 'REGISTER_SUCCESS', payload: responseData.data });
-        } else {
-          registerDispatch({ type: 'REGISTER_FAILURE', payload: responseData.message });
-        }
-      })
-      .catch((error) => {
-        registerDispatch({ type: 'REGISTER_FAILURE', payload: error.message });
+    try {
+      const response = await fetch(`${apiUrl}/register-agent`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(agentInfo),
       });
+
+      const responseData = await response.json();
+      console.log("Full API response:", responseData); // Log the full response to examine its structure
+
+      if (responseData.status === "success") {
+        registerDispatch({ type: 'REGISTER_SUCCESS', payload: responseData.user });
+      } else {
+        registerDispatch({ type: 'REGISTER_FAILURE', payload: responseData.message });
+      }
+      return responseData; // Return the response data
+    } catch (error) {
+      registerDispatch({ type: 'REGISTER_FAILURE', payload: error.message });
+      throw error; // Rethrow the error for handling in the calling function
+    }
   };
 
 
@@ -115,16 +122,15 @@ export const DataContextProvider = ({ children }) => {
   
       // Check if the response is OK (status 200-299)
       if (!response.ok) {
-        const errorMessage = `HTTP Error: ${response.status}`;
         if (response.status === 404) {
-          console.error('API Endpoint not found. Please check the URL.');
+          const errorData = await response.json();
+          return { error: errorData.message }; // Return the message for status 400
         }
-        console.error(errorMessage);
         resetPasswordDispatch({
           type: 'RESET_PASSWORDOtp_FAILURE',
-          payload: errorMessage,
+          payload: `HTTP Error: ${response.status}`,
         });
-        return { error: errorMessage };
+        return { error: `HTTP Error: ${response.status}` };
       }
   
       // Parse the response body once
@@ -140,6 +146,13 @@ export const DataContextProvider = ({ children }) => {
   
         // If successful, return response data and trigger navigation
         return responseData;  // Returning the data is important to trigger further logic in the calling function
+      } else if (responseData.message === "User not found.") {
+        console.warn("User not found:", responseData.message);
+        resetPasswordDispatch({
+          type: 'RESET_PASSWORDOtp_FAILURE',
+          payload: responseData.message,
+        });
+        return { error: responseData.message };
       } else {
         const errorMessage = responseData.message || "Unexpected error: could not send reset link.";
         console.warn("Password reset failed:", errorMessage);
@@ -171,26 +184,12 @@ export const DataContextProvider = ({ children }) => {
         },
         body: JSON.stringify({ email, otp }), 
       });
-  
-      if (!response.ok) {
-        const errorMessage = `HTTP Error: ${response.status}`;
-        console.error(errorMessage);
-        otpDispatch({ type: 'OTP_VERIFICATION_FAILURE', payload: errorMessage });
-        return { error: errorMessage };
-      }
-  
+
       const responseData = await response.json();
       console.log("OTP verification response:", responseData);
   
-      // Handle response based on the "status" field
-      if (responseData && responseData.message === 'OTP verified successfully.') {
-        otpDispatch({ type: 'OTP_VERIFICATION_SUCCESS' });
-        return responseData; // Return success with the message
-      } else {
-        const errorMessage = responseData.message || "Verification failed.";
-        otpDispatch({ type: 'OTP_VERIFICATION_FAILURE', payload: errorMessage });
-        return { error: errorMessage }; // Treat the message as error in case of failure
-      }
+      // Return the response message directly
+      return { message: responseData.message }; // Return the message directly
     } catch (error) {
       console.error("OTP verification error:", error.message);
       otpDispatch({ type: 'OTP_VERIFICATION_FAILURE', payload: error.message });

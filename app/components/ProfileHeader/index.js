@@ -5,7 +5,7 @@ import styles from './styles';
 import { useAuth } from '../../context/AuthContext';
 import getEnvVars from '../../config/env';
 
-const ProfileHeader = () => {
+const ProfileHeader = ({ isDarkMode }) => {
   const { authState } = useAuth();
   const { apiUrl } = getEnvVars();
   const [agentData, setAgentData] = useState(null);
@@ -13,7 +13,7 @@ const ProfileHeader = () => {
 
   useEffect(() => {
     const fetchAgentData = async () => {
-      if (authState.user.role_name === 'Admin') {
+      if (authState.role === 'Admin') {
         // Set default data for Admin
         setAgentData({
           firstName: authState.user.first_name,
@@ -23,7 +23,7 @@ const ProfileHeader = () => {
           phone: 'N/A',
           profileImage: null,
         });
-      } else if (authState.user.role_name === 'Agent' && authState.user.id) {
+      } else if (authState.role === 'Agent' && authState.user.id) {
         setLoading(true);
         try {
           const response = await fetch(`${apiUrl}/agents`);
@@ -77,18 +77,18 @@ const ProfileHeader = () => {
     : require('../../../assets/items/profile.png');
 
   return (
-    <View style={styles.headerContainer}>
+    <View style={[styles.headerContainer, isDarkMode]}>
       <Image source={profileImageUri} style={styles.profileImage} />
       <View style={styles.profileInfo}>
-        <Text style={styles.name}>{`${agentData.firstName} ${agentData.lastName}`}</Text>
-        <Text style={styles.company}>{agentData.company}</Text>
+        <Text style={[styles.name, isDarkMode && { color: '#fff' }]}>{`${agentData.firstName} ${agentData.lastName}`}</Text>
+        <Text style={[styles.company, isDarkMode && { color: '#fff' }]}>{agentData.company}</Text>
         <View style={styles.infoRow}>
           <Icon name="location" size={20} color="#fff" style={styles.icon} />
-          <Text style={styles.address}>{agentData.address}</Text>
+          <Text style={[styles.address, isDarkMode && { color: '#fff' }]}>{agentData.address}</Text>
         </View>
         <View style={styles.infoRow}>
           <Icon name="call" size={20} color="#fff" style={styles.icon} />
-          <Text style={styles.phone}>{agentData.phone}</Text>
+          <Text style={[styles.phone, isDarkMode && { color: '#fff' }]}>{agentData.phone}</Text>
         </View>
       </View>
     </View>

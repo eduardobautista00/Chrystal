@@ -1,5 +1,3 @@
-
-
 // Action Types
 export const LOGIN_REQUEST = 'LOGIN_REQUEST';
 export const LOGIN_SUCCESS = 'LOGIN_SUCCESS';
@@ -12,238 +10,268 @@ export const AGENT_SUCCESS = 'AGENT_SUCCESS';
 export const AGENT_FAILURE = 'AGENT_FAILURE';
 export const LOGOUT = 'LOGOUT';
 
-
-
-// Async Action Creator
-
 import getEnvVars from '../../config/env';
-import axios from 'axios'; // Assuming you're using axios
+import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-
+import * as Notifications from 'expo-notifications';
+import checkUserAuthentication from '../../context/AuthContext';
 
 const { apiUrl } = getEnvVars();
 
-class AuthActions  {
+class AuthActions {
+  registerDeviceToken = async (userToken) => {
+    try {
+      const expoPushToken = (await Notifications.getExpoPushTokenAsync()).data;
+      console.log("Expo Push Token:", expoPushToken);
+      
+      if (expoPushToken) {
+        await axios.post(
+          `${apiUrl}/update-device-token`,
+          { device_token: expoPushToken },
+          {
+            headers: { Authorization: `Bearer ${userToken}` },
+          }
+        );
+        await AsyncStorage.setItem('deviceToken', expoPushToken);
+        console.log('Device token registered:', expoPushToken);
+      } else {
+        console.log('Failed to get push token');
+      }
+    } catch (error) {
+      console.error('Error registering device token:', error);
+    }
+  }
 
   registerUser = async (dispatch, userInfo) => {
-    console.log("Agent Info being sent to API:", userInfo); // Log the data
+    console.log("Agent Info being sent to API:", userInfo);
     dispatch({ type: 'REGISTER_REQUEST' });
 
     try {
       const response = await axios.post(`${apiUrl}/register`, {
-          first_name: userInfo.first_name,
-          last_name: userInfo.last_name,
-          email: userInfo.email,
-          phone_number: userInfo.phone_number,
-          password: userInfo.password,
-          // type: agentInfo.type,
-          // is_agent: true, // Since the user is always an agent
-          //agency_name: companyInfo.agency_name || null, // Send company info if available
-          //company_no_of_location: companyInfo.company_no_of_location || null, // Send if available
-          //company_address: companyInfo.company_address || null, // Send if available
-          //company_coverage: companyInfo.company_coverage || null, // Send if available
-          //company_type: companyInfo.company_type || null, // Send if available
+        first_name: userInfo.first_name,
+        last_name: userInfo.last_name,
+        email: userInfo.email,
+        phone_number: userInfo.phone_number,
+        password: userInfo.password,
       });
 
-        // Log the response for debugging
-        console.log("API Response:", response.data);
-
-       // const token = response.data.user.token; // Assuming token is returned
-        const user = {  // Create a user object based on the response
-          first_name: response.data.user.first_name, // Use data from API or from agentInfo if needed
-          last_name: response.data.user.last_name, // Use data from API or from agentInfo if needed
-          email: response.data.user.email, // Use data from API or from agentInfo if needed
-          phone_number: response.user?.phone_number,
-          password: response.user?.password,
-          //is_agent: true, // Always true since the registration is for agents
-          //agency_name: response.data.agency_name || companyInfo.agency_name || null, // From API or companyInfo
-          //license_number: response.data.license_number || agentInfo.license_number, // From API or agentInfo
-          //address: response.data.address || agentInfo.address, // Address from API or agentInfo
-          //coverage: response.data.coverage || agentInfo.coverage, // Coverage from API or agentInfo
-          //type: response.data.type || agentInfo.type, // Type from API or agentInfo
-          //company_no_of_location: response.data.company_no_of_location || companyInfo.company_no_of_location || null, // Locations from API or companyInfo
-          //company_address: response.data.company_address || companyInfo.company_address || null, // Company address from API or companyInfo
-          //company_coverage: response.data.company_coverage || companyInfo.company_coverage || null, // Company coverage from API or companyInfo
-          //company_type: response.data.company_type || companyInfo.company_type || null, // Company type from API or companyInfo
-          //permissions: response.data.permissions || [], // Assuming permissions can be an array
-      };
-      console.log(user , "responseresponseresponse");
-        // Store the token
-    
-        dispatch({
-            type: 'REGISTER_SUCCESS',
-            payload: {
-              user: user
-            },
-        });
-    } catch (error) {
-        console.error('Registration error:', error.response?.data || error.message);
-        
-        dispatch({
-            type: 'REGISTER_FAILURE',
-            error: error.response?.data || 'Registration failed',
-        });
-    }
-};
-
-
-registerAgent = async (dispatch, agentInfo) => {
-  console.log("Agent Info being sent to API:", agentInfo); // Log the data
-  dispatch({ type: 'REGISTER_REQUEST' });
-
-  try {
-    const response = await axios.post(`${apiUrl}/register-agent`, {
-        first_name: agentInfo.first_name,
-        last_name: agentInfo.last_name,
-        email: agentInfo.email,
-        phone_number: agentInfo.phone_number,
-        password: agentInfo.password,
-        License_number: agentInfo.License_number,
-        address: agentInfo.address,
-        coverage: agentInfo.coverage,
-        property_type: agentInfo.property_type,
-        with_company: agentInfo.with_company,
-        company_name: agentInfo.company_name,
-        no_of_location: agentInfo.no_of_location,
-        company_address: agentInfo.company_address,
-        company_property_coverage: agentInfo.company_property_coverage,
-        company_property_type: agentInfo.company_property_type,
-        // type: agentInfo.type,
-        // is_agent: true, // Since the user is always an agent
-        //agency_name: companyInfo.agency_name || null, // Send company info if available
-        //company_no_of_location: companyInfo.company_no_of_location || null, // Send if available
-        //company_address: companyInfo.company_address || null, // Send if available
-        //company_coverage: companyInfo.company_coverage || null, // Send if available
-        //company_type: companyInfo.company_type || null, // Send if available
-    });
-
-      // Log the response for debugging
       console.log("API Response:", response.data);
 
-      const token = response.data.token; // Assuming token is returned
-      const user = {  // Create a user object based on the response
-        first_name: response.data.first_name, // Use data from API or from agentInfo if needed
-        last_name: response.data.last_name, // Use data from API or from agentInfo if needed
-        email: response.data.email, // Use data from API or from agentInfo if needed
-        phone_number: response.phone_number,
-        password: response.password,
-        License_number: response.License_number,
-        address: response.address,
-        coverage: response.coverage,
-        property_type: response.property_type,
-        with_company: response.with_company,
-        company_name: response.company_name,
-        no_of_location: response.no_of_location,
-        company_address: response.company_address,
-        company_property_coverage: response.company_property_coverage,
-        company_property_type: response.company_property_type,
-        //is_agent: true, // Always true since the registration is for agents
-        //agency_name: response.data.agency_name || companyInfo.agency_name || null, // From API or companyInfo
-        //license_number: response.data.license_number || agentInfo.license_number, // From API or agentInfo
-        //address: response.data.address || agentInfo.address, // Address from API or agentInfo
-        //coverage: response.data.coverage || agentInfo.coverage, // Coverage from API or agentInfo
-        //type: response.data.type || agentInfo.type, // Type from API or agentInfo
-        //company_no_of_location: response.data.company_no_of_location || companyInfo.company_no_of_location || null, // Locations from API or companyInfo
-        //company_address: response.data.company_address || companyInfo.company_address || null, // Company address from API or companyInfo
-        //company_coverage: response.data.company_coverage || companyInfo.company_coverage || null, // Company coverage from API or companyInfo
-        //company_type: response.data.company_type || companyInfo.company_type || null, // Company type from API or companyInfo
-        //permissions: response.data.permissions || [], // Assuming permissions can be an array
-    };
-      const permission = response.data.permissions; 
-      console.log(user);
-    
-      // Store the token
-      await AsyncStorage.setItem('accessToken', token);
-      console.log("Token stored successfully");
+      const user = {
+        first_name: response.data.user.first_name,
+        last_name: response.data.user.last_name,
+        email: response.data.user.email,
+        phone_number: response.data.user.phone_number,
+        user_id: response.data.user.id,
+      };
+      console.log(user, "responseresponseresponse");
 
       dispatch({
-          type: 'REGISTER_SUCCESS',
-          payload: {
-              user: user,
-              token: token,
-              permission: permission,
-          },
+        type: 'REGISTER_SUCCESS',
+        payload: {
+          user: user
+        },
       });
-  } catch (error) {
+    } catch (error) {
       console.error('Registration error:', error.response?.data || error.message);
       
       dispatch({
-          type: 'REGISTER_FAILURE',
-          error: error.response?.data || 'Registration failed',
+        type: 'REGISTER_FAILURE',
+        error: error.response?.data || 'Registration failed',
       });
-  }
-};
+    }
+  };
 
+  loginUser = async (dispatch, email, password) => {
+    try {
+      dispatch({ type: 'LOGIN_REQUEST' });
+      console.log('Login attempt for:', email);
 
- loginUser = async (dispatch, email, password) => {
-  dispatch({ type: 'LOGIN_REQUEST' });
+      const response = await axios.post(`${apiUrl}/login`, {
+        email,
+        password,
+      });
 
-  try {
-    const response = await axios.post(`${apiUrl}/login`, {
-      email: email,
-      password: password,
-    });
+      console.log('Login response:', response.data);
 
-    const token = response.data.token; // Assuming the token is returned on successful login
-    const user = response.data.user; // Assuming the user data is returned as well
-    const permission = response.data.permissions; 
-    console.log(user);
-    // Store the token in AsyncStorage or where required
-    await AsyncStorage.setItem('accessToken', token);
+      if (!response.data.access_token) {
+        throw new Error('No token received from server');
+      }
 
-    dispatch({
-      type: 'LOGIN_SUCCESS',
-      payload: {
-        user : user,
-        token : token,
-        permission : permission,
-      },
-    });
+      const user_token = response.data.access_token;
+      const refresh_token = response.data.refresh_token;
+      const user = response.data.user;
+      const permission = response.data.permissions;
 
-  } catch (error) {
-    //console.error('Login error:', error.response?.data || error.message);
+      // Store token in AsyncStorage
+      try {
+        await AsyncStorage.setItem('access_token', user_token);
+        await AsyncStorage.setItem('refresh_token', refresh_token);
+        // Verify token was stored
+        const storedAccessToken = await AsyncStorage.getItem('access_token');
+        const storedRefreshToken = await AsyncStorage.getItem('refresh_token');
+        console.log('Token stored successfully:', storedAccessToken ? 'Yes' : 'No');
+        console.log('Refresh Token stored successfully:', storedRefreshToken ? 'Yes' : 'No');
+        if (!storedAccessToken || !storedRefreshToken) {
+          throw new Error('Failed to store token');
+        }
+      } catch (storageError) {
+        console.error('Error storing token:', storageError);
+        throw storageError;
+      }
 
-    dispatch({
-      type: 'LOGIN_FAILURE',
-      error: error.response?.data || 'Login failed',
-    });
-  }
-};
+      // Register device token
+      try {
+        const expoPushToken = (await Notifications.getExpoPushTokenAsync()).data;
+        console.log('Registering device token:', expoPushToken);
+
+        await axios.post(
+          `${apiUrl}/update-device-token`,
+          { device_token: expoPushToken },
+          {
+            headers: {
+              Authorization: `Bearer ${user_token}`,
+              'Content-Type': 'application/json'
+            },
+          }
+        );
+        console.log('Device token registered');
+        
+      } catch (tokenError) {
+        console.error('Error registering device token:', tokenError);
+        // Continue with login even if token registration fails
+      }
+
+      // Dispatch login success with all required data
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: {
+          user,
+          access_token: user_token, // Make sure this matches the reducer's expected property name
+          refresh_token,
+          permission,
+          isAuthenticated: true
+        }
+      });
+
+      console.log('Dispatched LOGIN_SUCCESS with isAuthenticated:', true);
+
+      return {
+        user,
+        user_token,
+        refresh_token,
+        permission,
+        isAuthenticated: true
+      };
+
+    } catch (error) {
+      console.error('Login error:', error.response?.data || error.message);
+      const errorMessage = error.response?.data?.message || 'Login failed';
+      dispatch({
+        type: 'LOGIN_FAILURE',
+        error: errorMessage
+      });
+      return {
+        error: errorMessage,
+        isAuthenticated: false
+      };
+    }
+  };
 
   logoutUser = async (dispatch) => {
-    dispatch({
-      type: 'LOGOUT'
-    });
-  }
+    try {
+      console.log('Starting logout process');
+      const user_token = await AsyncStorage.getItem('access_token');
+      console.log('User token from storage:', user_token);
+      
+      // Log all items in AsyncStorage
+      const allKeys = await AsyncStorage.getAllKeys();
+      console.log('All AsyncStorage Keys:', allKeys);
+      
+      // Log values for each key
+      for (const key of allKeys) {
+        const value = await AsyncStorage.getItem(key);
+        console.log(`AsyncStorage ${key}:`, value);
+      }
+      
+      try {
+        if (!user_token) {
+          console.log('No user token found in storage');
+          return;
+        }
+        // Get the current Expo push token
+        const expoPushToken = (await Notifications.getExpoPushTokenAsync()).data;
+        console.log('Current device token to remove:', expoPushToken);
 
-  userPermission = (permission = "" , auth) => {
+        // Remove the device token
+        const response = await axios.post(
+          `${apiUrl}/remove-device-token`,
+          { device_token: expoPushToken },
+          {
+            headers: { 
+              'Authorization': `Bearer ${user_token}`,
+              'Content-Type': 'application/json'
+            },
+          }
+        );
+        console.log('Server response for token removal:', response.data);
+
+        // Clear stored tokens
+        await AsyncStorage.removeItem('access_token');
+        console.log('Removed access token from storage');
+
+        // Also clear the device token from storage if you're storing it
+        await AsyncStorage.removeItem('device_token');
+        console.log('Removed device token from storage');
+
+        await AsyncStorage.removeItem('refresh_token');
+        console.log('Removed refresh token from storage');
+
+      } catch (tokenError) {
+        console.error('Error removing device token:', tokenError.response?.data || tokenError.message);
+        // If device token removal fails, still clear local storage
+        await AsyncStorage.removeItem('access_token');
+        await AsyncStorage.removeItem('device_token');
+        await AsyncStorage.removeItem('refresh_token');
+      }
+
+      dispatch({
+        type: 'LOGOUT'
+      });
+      console.log('Dispatched logout action');
+
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still dispatch logout even if there's an error
+      dispatch({
+        type: 'LOGOUT'
+      });
+    }
+  };
+
+  userPermission = (permission = "", auth) => {
     try {
       if ((auth?.rolePermission).includes(permission)) {
         return true;
       }
       return false;
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('Permission check failed:', error);
       return false;
     }
   };
 
-  userRole =  (role_name = "" , auth) => {
+  userRole = (role_name = "", auth) => {
     try {
       if (auth?.role === role_name) {
         return true;
       }
-
       return false;
-    
-      // });
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error('Role check failed:', error);
       return false;
     }
   };
- 
 }
 
 export default AuthActions;

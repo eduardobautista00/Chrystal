@@ -8,8 +8,10 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native"; // Import useFocusEffect
 import styles from './styles';
+import { useDarkMode } from "../../context/DarkModeContext";
 
 export default function Background({ children }) {
+  const { isDarkMode } = useDarkMode();
   const translateX = useState(new Animated.Value(400))[0]; // Start off-screen to the right
 
   useFocusEffect(
@@ -31,12 +33,12 @@ export default function Background({ children }) {
     <ImageBackground
       source={require("../../../assets/items/dot.png")}
       resizeMode="no-repeat"
-      style={styles.background}
+      style={[styles.background, { backgroundColor: isDarkMode ? '#1a1a1a' : '#FFFFFF' }]}
     >
-      <KeyboardAvoidingView style={styles.container} behavior="padding">
-        <Animated.View style={{ transform: [{ translateX }] }}>
+      <KeyboardAvoidingView style={[styles.container, { backgroundColor: isDarkMode ? '#1a1a1a' : '#FFFFFF' }]} behavior="padding">
+        <Animated.View style={{ transform: [{ translateX }], backgroundColor: isDarkMode ? '#1a1a1a' : '#FFFFFF' }}>
           <ScrollView
-            contentContainerStyle={styles.scrollViewContent}
+            contentContainerStyle={[styles.scrollViewContent, { backgroundColor: isDarkMode ? '#1a1a1a' : '#FFFFFF' }]}
             style={styles.scrollView}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}

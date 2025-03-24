@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "611841203314",
-    "project_id": "chrystal-aab91",
-    "storage_bucket": "chrystal-aab91.firebasestorage.app"
+    "project_number": "920742407565",
+    "project_id": "chrystal-notif",
+    "storage_bucket": "chrystal-notif.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:611841203314:android:701033c674de30e881f6eb",
+        "mobilesdk_app_id": "1:920742407565:android:2ecdb166da8f3dd3ad21c4",
         "android_client_info": {
           "package_name": "com.ob_eduardo.Krystal"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAGUjVUGyx-MAnFT9CA-Q-lQiOFHvnptJI"
+          "current_key": "AIzaSyB5L2U53ETPXvJvTkXFxnqu69Kz7P5y--k"
         }
       ],
       "services": {

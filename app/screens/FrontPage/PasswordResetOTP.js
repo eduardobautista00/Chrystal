@@ -16,6 +16,7 @@ export default function PasswordResetOTP({ route, navigation }) {
   const { email } = route.params;
   const [countdown, setCountdown] = useState(60); // Countdown in seconds
   const timerRef = useRef(null);
+  const [otpError, setOtpError] = useState(false); // Track OTP validity
 
   // Create refs for each OTP input field
   const inputRefs = otp.map(() => useRef(null)); // Create refs for each OTP input
@@ -80,13 +81,14 @@ export default function PasswordResetOTP({ route, navigation }) {
   
       if (responseData && (responseData.success || responseData.message === "OTP verified successfully.")) {
         console.log("OTP verified successfully.");
+        setOtpError(false); // Reset error state on success
         navigation.replace('OTPSuccess', { email, otpValue });
       } else {
-        Alert.alert('Verification Failed', responseData.error || 'Invalid OTP. Please try again.');
+        setOtpError(true); // Set error state on failure
       }
     } catch (error) {
       console.error('Error during OTP verification:', error);
-      Alert.alert('Verification Failed', 'An error occurred. Please try again.');
+      setOtpError(true); // Set error state on exception
     } finally {
       setIsLoading(false);
     }
@@ -126,7 +128,7 @@ export default function PasswordResetOTP({ route, navigation }) {
       {/* <BackButton goBack={navigation.goBack} /> */}
       
       <Text style={styles.header}>OTP Verification</Text>
-      <Text style={styles.subHeader}>We have sent the verification code to your mobile number.</Text>
+      <Text style={styles.subHeader}>We have sent the verification code to your email.</Text>
 
       <View style={styles.otpContainer}>
         {otp.map((digit, index) => (
@@ -138,16 +140,18 @@ export default function PasswordResetOTP({ route, navigation }) {
             onBackspace={handleBackspace}
             nextInputRef={inputRefs[index + 1]} // Pass the next input ref
             ref={inputRefs[index]} // Assign ref for each input
+            style={otpError ? styles.errorInput : {}} // Apply error style if invalid
           />
         ))}
       </View>
+      {otpError && <Text style={styles.errorMessage}>Wrong or Invalid OTP</Text>}
 
       <Button mode="contained" onPress={handleSubmit} style={styles.submitButton} disabled={isLoading}>
         <Text style={styles.buttonText}>{isLoading ? 'Verifying...' : 'Submit'}</Text>
       </Button>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Didn’t receive the code?</Text>
+        <Text style={styles.footerText}>Didn't receive the code?</Text>
         {countdown > 0 ? (
           <Text style={styles.timerText}>{formatTime(countdown)}</Text>
         ) : (
@@ -218,5 +222,14 @@ const styles = StyleSheet.create({
     top: 40,
     left: 30,
     paddingTop: 20
+  },
+  errorInput: {
+    borderColor: 'red', // Change border color to red
+    borderWidth: 2, // Set border width
+  },
+  errorMessage: {
+    color: 'red',
+    textAlign: 'center',
+    marginTop: '-10',
   },
 });

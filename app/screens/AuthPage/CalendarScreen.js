@@ -5,30 +5,39 @@ import ProfileHeader from '../../components/ProfileHeader';
 import StatsCard from '../../components/ProfileStatsCard';
 import PropertyList from '../../components/ProfilePropertyList';
 import CalendarComponent from '../../components/CalendarComponent';
-import BackButton from '../../components/BackButton';
+import BackButton from '../../components/ProfileBackButton';
 import AnimatedBackground from "../../components/AnimatedBackground";
 import BottomNavigation from '../../components/BottomNavigation';
+import { useDarkMode } from '../../context/DarkModeContext';
 
 export default function CalendarScreen({ navigation }) {
+  const { isDarkMode } = useDarkMode();
+
+  const dynamicStyles = {
+    container: {
+      flex: 1,
+      backgroundColor: isDarkMode ? '#1A1A1A' : '#ECEAFF',
+    },
+  };
   return (
-    <View style={styles.container}>
+    <View style={dynamicStyles.container}>
       <LinearGradient
-        colors={['#0068C8', '#C852FF']}
+        colors={isDarkMode ? ['#004080', '#8C39B5'] : ['#0068C8', '#C852FF']}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={styles.gradient}
       >
         <View style={styles.backButtonContainer}>
-          <View style={styles.button}>
-            <BackButton goBack={navigation.goBack} />
+          <View style={[styles.button, { backgroundColor: isDarkMode ? '#1A1A1A' : '#FFFFFF' }]}>
+          <BackButton navigation={navigation} isDarkMode={isDarkMode} />
           </View>
           <Text style={styles.title}>My Calendar</Text>
         </View>
-        <ProfileHeader />
+        <ProfileHeader isDarkMode={isDarkMode} />
       </LinearGradient>
-      <StatsCard />
-      <CalendarComponent navigation={navigation} />
-      <BottomNavigation navigation={navigation} />
+      <StatsCard isDarkMode={isDarkMode} />
+      <CalendarComponent navigation={navigation} isDarkMode={isDarkMode} />
+      <BottomNavigation navigation={navigation} isDarkMode={isDarkMode} />
     </View>
   );
 };

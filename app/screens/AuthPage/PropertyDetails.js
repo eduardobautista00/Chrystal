@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Modal } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, Modal, ActivityIndicator, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AnimatedBackground from "../../components/AnimatedBackgroundAlt";
 import BackButton from '../../components/BackButton';
 import getEnvVars from '../../config/env';
 import { useAuth } from '../../context/AuthContext';
+import DropDownPicker from 'react-native-dropdown-picker';
+import CountInput from '../../components/CountInput';
+import * as ImagePicker from 'expo-image-picker';
+import axios from 'axios';
+import TextInput from "../../components/TextInput";
 
 // Function to map currency codes to their symbols
 const getCurrencySymbol = (currencyCode) => {
-  switch (currencyCode) {
+  switch (currencyCode.toUpperCase()) {
     case 'USD':
       return '$';
     case 'EUR':
       return '€';
-    case 'YEN':
+    case 'JPY':
       return '¥';
     default:
       return currencyCode; // Fallback to the code if no symbol is defined
@@ -25,8 +30,8 @@ const getAreaUnitSymbol = (unit) => {
   switch (unit) {
     case 'ft2':
       return 'ft²'; // Square feet symbol
-    case 'km2':
-      return 'km²'; // Square meters symbol
+    case 'm2':
+      return 'm²'; // Square meters symbol
     case 'acre':
       return 'ac'; // Acres symbol
     default:
@@ -45,6 +50,18 @@ const PropertyDetails = ({ route, navigation }) => {
 
   // State for controlling the modal visibility
   const [modalVisible, setModalVisible] = useState(false);
+  const [selectedBuyer, setSelectedBuyer] = useState(null);
+  const [openBuyer, setOpenBuyer] = useState(false);
+  const [buyerItems, setBuyerItems] = useState([]);
+  const [showBuyerModal, setShowBuyerModal] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [modalTab, setModalTab] = useState('existing');
+  const [buyerFirstName, setBuyerFirstName] = useState('');
+  const [buyerLastName, setBuyerLastName] = useState('');
+  const [buyerEmail, setBuyerEmail] = useState('');
+  const [buyerPhone, setBuyerPhone] = useState('');
+  const [buyerAddress, setBuyerAddress] = useState('');
+  const [createNewBuyer, setCreateNewBuyer] = useState(false);
 
   // Get the currency symbol using the getCurrencySymbol function
   const currencySymbol = getCurrencySymbol(property.currency);
@@ -81,54 +98,251 @@ const PropertyDetails = ({ route, navigation }) => {
     }
   
     fetchPropertyDetails();
+    fetchBuyers();
   }, [apiUrl, propertyId]);
   
   
-  const markAsSold = async (status) => {
-    setLoading(true); // Show loading spinner
+  const fetchBuyers = async () => {
+    try {
+      const response = await fetch(`${apiUrl}/buyers/${propertyId}`);
+      if (!response.ok) throw new Error('Failed to fetch buyers');
+      const data = await response.json();
+      
+      // Format buyers for the dropdown using the correct property names
+      const formattedBuyers = (data || []).map(buyer => ({
+        label: `${buyer.buyer_first_name} ${buyer.buyer_last_name}`,
+        value: buyer.id,
+        buyer: buyer // Store the full buyer object for reference
+      }));
+      
+      setBuyerItems(formattedBuyers);
+    } catch (error) {
+      console.error('Error fetching buyers:', error);
+      alert('Error fetching buyers');
+    }
+  };
+
+  
+
+  const markPropertyAsSold = async (status, buyerId, isNewBuyer) => {
     try {
       const agentResponse = await fetch(`${apiUrl}/agents`);
-      if (!agentResponse.ok) {
-        throw new Error("Failed to fetch agents");
-      }
+      if (!agentResponse.ok) throw new Error("Failed to fetch agents");
       const agentData = await agentResponse.json();
 
       const matchingAgent = agentData.agents.find((agent) => agent.user_id === authState.user.id);
+      if (!matchingAgent) throw new Error("Agent not found for the current user");
 
-      if (!matchingAgent) {
-        throw new Error("Agent not found for the current user");
+      const requestBody = {
+        property_id: propertyId,
+        buyer_id: buyerId,
+        agent_id: matchingAgent.id,
+        status: status,
+        create_new_buyer: isNewBuyer
+      };
+
+      // Only add buyer details if creating a new buyer
+      if (isNewBuyer) {
+        Object.assign(requestBody, {
+          buyer_first_name: buyerFirstName,
+          buyer_last_name: buyerLastName,
+          email: buyerEmail,
+          buyer_phone_number: buyerPhone,
+          buyer_address: buyerAddress
+        });
       }
-
-      const agentId = matchingAgent.id;
 
       const response = await fetch(`${apiUrl}/properties/${propertyId}/mark-as-sold`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({
-          status,
-          agent_id: agentId,
-        }),
+        body: JSON.stringify(requestBody)
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        alert('Property marked as sold!');
-        fetchPropertyDetails();
-      } else {
-        alert(`Failed to mark property as sold: ${data.message || 'Unknown error'}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to mark property as sold');
       }
+
+      const data = await response.json();
+      return data;
     } catch (error) {
       console.error('Error marking property as sold:', error);
-      alert('Error marking property as sold');
-    } finally {
-      setLoading(false); // Hide loading spinner
+      throw error;
     }
   };
-  
-  
+
+  const handleCreateBuyerAndMarkAsSold = async () => {
+    if (!buyerFirstName || !buyerLastName || !buyerEmail || !buyerPhone) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await markPropertyAsSold('sold', null, true);
+      
+      alert('Property marked as sold!');
+      setShowBuyerModal(false);
+      fetchPropertyDetails();
+      
+      // Reset form fields
+      setBuyerFirstName('');
+      setBuyerLastName('');
+      setBuyerEmail('');
+      setBuyerPhone('');
+      setBuyerAddress('');
+      setSelectedBuyer(null);
+      
+    } catch (error) {
+      Alert.alert('Failed to create buyer', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Also add a useEffect to track state changes
+  useEffect(() => {
+    console.log('createNewBuyer state changed to:', createNewBuyer);
+  }, [createNewBuyer]);
+
+  const handleExistingBuyerSubmit = async () => {
+    if (!selectedBuyer) {
+      Alert.alert('Error', 'Please select a buyer');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await markPropertyAsSold('sold', selectedBuyer, false);
+      
+      if (response.success) {
+        Alert.alert('Sold', 'Property marked as sold!');
+        setShowBuyerModal(false);
+        fetchPropertyDetails(); // Refresh property details
+        setSelectedBuyer(null);
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to mark property as sold');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateProperty = async () => {
+    try {
+      const currentProperty = property;
+      setLoading(true);
+
+      // Create FormData instance
+      const formData = new FormData();
+      
+      // Add _method field for PUT request
+      formData.append("_method", "PUT");
+
+      // Prepare property data with explicit string conversions
+      const propertyData = {
+        property_name: propertyDetails?.property_name || currentProperty.property_name,
+        property_type: propertyDetails?.property_type || currentProperty.property_type,
+        address: propertyDetails?.address || currentProperty.address,
+        price: (propertyDetails?.price || currentProperty.price).toString(),
+        area: (propertyDetails?.area || currentProperty.area).toString(),
+        bedrooms: (propertyDetails?.bedrooms || currentProperty.bedrooms).toString(),
+        bathrooms: (propertyDetails?.bathrooms || currentProperty.bathrooms).toString(),
+        kitchen: (propertyDetails?.kitchen || currentProperty.kitchen).toString(),
+        garage: (propertyDetails?.garage || currentProperty.garage).toString(),
+        latitude: (propertyDetails?.latitude || currentProperty.latitude).toString(),
+        longitude: (propertyDetails?.longitude || currentProperty.longitude).toString(),
+        currency: propertyDetails?.currency || currentProperty.currency || 'USD',
+        unit: propertyDetails?.unit || currentProperty.unit || 'm2',
+        pin_color: propertyDetails?.pin_color || currentProperty.pin_color || '#7B61FF',
+        status: propertyDetails?.status || currentProperty.status,
+        seller_id: currentProperty.seller_id.toString()
+      };
+
+      // Append all property data to FormData
+      Object.entries(propertyData).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+
+      // If there's a new image, append it
+      if (propertyDetails?.newImage) {
+        formData.append('image_url', {
+          uri: propertyDetails.newImage.uri,
+          type: 'image/jpeg',
+          name: 'property_image.jpg'
+        });
+      }
+
+      const response = await axios.post(
+        `${apiUrl}/properties/${propertyId}`,
+        formData,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'multipart/form-data',
+          },
+          timeout: 30000
+        }
+      );
+
+      console.log('Response:', response.data);
+
+      if (response.data?.message === 'Property updated successfully') {
+        Alert.alert('Success', response.data.message);
+        setEditModalVisible(false);
+        await fetchPropertyDetails();
+        return;
+      }
+
+      throw new Error(response.data?.message || 'Failed to update property');
+
+    } catch (error) {
+      console.error('Error updating property:', error);
+      
+      if (error.response?.data?.errors) {
+        const errorMessages = Object.entries(error.response.data.errors)
+          .map(([field, messages]) => `${field}: ${messages[0]}`)
+          .join('\n');
+        Alert.alert('Validation Error', errorMessages);
+      } else if (!error.message.includes('Property updated successfully')) {
+        Alert.alert('Error', error.message || 'An unexpected error occurred');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pickImage = async () => {
+    try {
+      // Request permission first
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Please grant camera roll permissions to upload images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setPropertyDetails(prev => ({
+          ...prev,
+          image_url: result.assets[0].uri,
+          newImage: result.assets[0]
+        }));
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
 
   return (
     <AnimatedBackground>
@@ -140,7 +354,13 @@ const PropertyDetails = ({ route, navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.container}>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#7B61FF" />
+          <Text style={styles.loadingText}>Loading property details...</Text>
+        </View>
+      ) : (
+        <View style={styles.container}>
 
   {/* Image Section */}
   <View style={styles.imageContainer}>
@@ -148,7 +368,7 @@ const PropertyDetails = ({ route, navigation }) => {
       source={{
         uri: propertyDetails?.image_url?.trim() 
           ? propertyDetails?.image_url 
-          : 'https://via.placeholder.com/300'
+          : 'https://dummyimage.com/300x300'
       }} 
       style={styles.image} 
     />
@@ -227,6 +447,7 @@ const PropertyDetails = ({ route, navigation }) => {
   </ScrollView>
 
 </View>
+      )}
 
 
       {/* Modal for complete property details */}
@@ -299,21 +520,174 @@ const PropertyDetails = ({ route, navigation }) => {
         </Text>
       </ScrollView>
 
-      {/* Mark as Sold Button */}
+      {/* Add this new Modal for buyer selection */}
+      <Modal
+        visible={showBuyerModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowBuyerModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalContent, { maxHeight: 'auto' }]}>
+            <Text style={styles.modalTitle}>Select or Add Buyer</Text>
+
+            {/* Tab Container */}
+            <View style={styles.tabContainer}>
+              <TouchableOpacity 
+                style={[styles.tab, modalTab === 'existing' && styles.selectedTab]}
+                onPress={() => {
+                  setModalTab('existing');
+                  setCreateNewBuyer(false);
+                  console.log('Switched to Existing Buyer Tab - createNewBuyer:', false);
+                }}
+              >
+                <Text style={[styles.tabText, modalTab === 'existing' && styles.selectedTabText]}>
+                  Existing Buyer
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.tab, modalTab === 'new' && styles.selectedTab]}
+                onPress={() => {
+                  setModalTab('new');
+                  setCreateNewBuyer(true);
+                  console.log('Switched to New Buyer Tab - createNewBuyer:', true);
+                }}
+              >
+                <Text style={[styles.tabText, modalTab === 'new' && styles.selectedTabText]}>
+                  New Buyer
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {modalTab === 'existing' ? (
+              // Existing Buyer Content
+              <View style={styles.dropdownContainer}>
+                <DropDownPicker
+                  open={openBuyer}
+                  value={selectedBuyer}
+                  items={buyerItems}
+                  setOpen={setOpenBuyer}
+                  setValue={setSelectedBuyer}
+                  setItems={setBuyerItems}
+                  placeholder="Select a buyer"
+                  searchable={true}
+                  searchPlaceholder="Search buyers..."
+                  listMode="SCROLLVIEW"
+                  scrollViewProps={{
+                    nestedScrollEnabled: true,
+                  }}
+                  style={styles.dropdown}
+                  dropDownContainerStyle={styles.dropDownContainer}
+                  searchTextInputStyle={styles.searchTextInput}
+                  searchContainerStyle={styles.searchContainer}
+                />
+              </View>
+            ) : (
+              // New Buyer Form Content
+              <ScrollView style={styles.formContainer}>
+                <TextInput
+                  label="First Name"
+                  value={buyerFirstName}
+                  onChangeText={setBuyerFirstName}
+                  style={styles.input}
+                />
+                <TextInput
+                  label="Last Name"
+                  value={buyerLastName}
+                  onChangeText={setBuyerLastName}
+                  style={styles.input}
+                />
+                <TextInput
+                  label="Email"
+                  value={buyerEmail}
+                  onChangeText={setBuyerEmail}
+                  style={styles.input}
+                  keyboardType="email-address"
+                />
+                <TextInput
+                  label="Phone Number"
+                  value={buyerPhone}
+                  onChangeText={setBuyerPhone}
+                  style={styles.input}
+                  keyboardType="phone-pad"
+                />
+                <TextInput
+                  label="Address"
+                  value={buyerAddress}
+                  onChangeText={setBuyerAddress}
+                  style={styles.input}
+                />
+              </ScrollView>
+            )}
+
+            <TouchableOpacity
+              style={[
+                styles.closeButton,
+                (!selectedBuyer && modalTab === 'existing') && styles.disabledButton,
+                (modalTab === 'new' && (!buyerFirstName || !buyerLastName || !buyerEmail || !buyerPhone)) && styles.disabledButton
+              ]}
+              onPress={() => {
+                if (modalTab === 'existing') {
+                  handleExistingBuyerSubmit();
+                } else {
+                  handleCreateBuyerAndMarkAsSold();
+                }
+              }}
+              disabled={(modalTab === 'existing' && !selectedBuyer) || 
+                       (modalTab === 'new' && (!buyerFirstName || !buyerLastName || !buyerEmail || !buyerPhone)) || 
+                       loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? 'Processing...' : 'Mark as Sold'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => {
+                setShowBuyerModal(false);
+                setSelectedBuyer(null);
+                setOpenBuyer(false);
+                setBuyerFirstName('');
+                setBuyerLastName('');
+                setBuyerEmail('');
+                setBuyerPhone('');
+                setBuyerAddress('');
+              }}
+            >
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modify the existing "Mark as Sold" button in your modal */}
       <TouchableOpacity
-        onPress={() => markAsSold('sold')}
+        onPress={() => setShowBuyerModal(true)}
         style={[
           styles.closeButton,
           propertyDetails?.status === 'sold' && styles.disabledButton,
         ]}
-        disabled={propertyDetails?.status === 'sold' || loading}
+        disabled={propertyDetails?.status === 'sold'}
       >
         <Text style={styles.buttonText}>
-          {loading
-            ? 'Processing...'
-            : propertyDetails?.status === 'sold'
-            ? 'Already Sold'
-            : 'Mark as Sold'}
+          {propertyDetails?.status === 'sold' ? 'Already Sold' : 'Mark as Sold'}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => {
+          setEditModalVisible(true);
+          setModalVisible(false);
+        }}
+        style={[
+          styles.closeButton,
+          propertyDetails?.status === 'sold' && styles.disabledButton,
+        ]}
+        disabled={propertyDetails?.status === 'sold'}
+      >
+        <Text style={styles.buttonText}>
+          Edit Property
         </Text>
       </TouchableOpacity>
 
@@ -325,6 +699,139 @@ const PropertyDetails = ({ route, navigation }) => {
   </View>
 </Modal>
 
+<Modal
+  visible={editModalVisible}
+  animationType="slide"
+  transparent={true}
+  onRequestClose={() => setEditModalVisible(false)}
+>
+  <View style={styles.modalContainer}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Edit Property Details</Text>
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.modalDetails}>
+        {/* Image Preview */}
+        <View style={styles.imagePreviewContainer}>
+          <Image
+            source={{
+              uri: propertyDetails?.newImage?.uri || propertyDetails?.image_url || 'https://dummyimage.com/300x300'
+            }}
+            style={styles.imagePreview}
+            resizeMode="cover"
+          />
+        </View>
+
+        <TouchableOpacity
+          style={styles.uploadButton}
+          onPress={pickImage}
+        >
+          <Icon name="camera-outline" size={24} color="#fff" />
+          <Text style={styles.buttonText}>Change Image</Text>
+        </TouchableOpacity>
+
+        <TextInput
+          label="Property Name"
+          value={propertyDetails?.property_name}
+          onChangeText={(text) => setPropertyDetails(prev => ({
+            ...prev,
+            property_name: text
+          }))}
+          style={[styles.input]}
+        />
+        
+        {/*<Text style={styles.inputLabel}>Address</Text>*/}
+        <TextInput
+          label="Address"
+          value={propertyDetails?.address}
+          onChangeText={(text) => setPropertyDetails(prev => ({
+            ...prev,
+            address: text
+          }))}
+          style={[styles.input]}
+        />
+
+        {/*<Text style={styles.inputLabel}>Price ({currencySymbol})</Text>*/}
+        <TextInput
+          label={`Price (${currencySymbol})`}
+          value={propertyDetails?.price?.toString()}
+          onChangeText={(text) => setPropertyDetails(prev => ({
+            ...prev,
+            price: text
+          }))}
+          keyboardType="numeric"
+          style={[styles.input, { height: 64 }]}
+        />
+
+        {/*<Text style={styles.inputLabel}>Area ({areaUnitSymbol})</Text>*/}
+        <TextInput
+          label={`Area (${areaUnitSymbol})`}
+          value={propertyDetails?.area?.toString()}
+          onChangeText={(text) => setPropertyDetails(prev => ({
+            ...prev,
+            area: text
+          }))}
+          keyboardType="numeric"
+          style={[styles.input]}
+        />
+
+        <Text style={[styles.modalTitle, { marginTop: 20 }]}>Property Features</Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.countRowContainer}
+        >
+          <View style={styles.countRow}>
+            <CountInput
+              label="Bedrooms"
+              value={propertyDetails?.bedrooms}
+              onValueChange={(value) => setPropertyDetails(prev => ({
+                ...prev,
+                bedrooms: value
+              }))}
+            />
+            <CountInput
+              label="Bathrooms"
+              value={propertyDetails?.bathrooms}
+              onValueChange={(value) => setPropertyDetails(prev => ({
+                ...prev,
+                bathrooms: value
+              }))}
+            />
+            <CountInput
+              label="Kitchen"
+              value={propertyDetails?.kitchen}
+              onValueChange={(value) => setPropertyDetails(prev => ({
+                ...prev,
+                kitchen: value
+              }))}
+            />
+            <CountInput
+              label="Garage"
+              value={propertyDetails?.garage}
+              onValueChange={(value) => setPropertyDetails(prev => ({
+                ...prev,
+                garage: value
+              }))}
+            />
+          </View>
+        </ScrollView>
+
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={handleUpdateProperty}
+        >
+          <Text style={styles.buttonText}>Update Property</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => setEditModalVisible(false)}
+        >
+          <Text style={styles.buttonText}>Cancel</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
+  </View>
+</Modal>
 
     </AnimatedBackground>
   );
@@ -410,7 +917,8 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: 'white',
     padding: 20,
-    width: '80%',
+    width: '90%',
+    maxHeight: '80%',
     borderRadius: 10,
     alignItems: 'center',
   },
@@ -445,6 +953,111 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5, // Reduce opacity for a disabled look
+  },
+  dropdownContainer: {
+    width: '100%',
+    marginBottom: 20,
+    zIndex: 1000,
+  },
+  dropdown: {
+    borderColor: '#ddd',
+    borderRadius: 8,
+  },
+  dropDownContainer: {
+    borderColor: '#ddd',
+    maxHeight: 200,
+  },
+  searchTextInput: {
+    borderColor: '#ddd',
+    borderRadius: 8,
+  },
+  searchContainer: {
+    borderBottomColor: '#ddd',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#7B61FF',
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 5,
+  },
+  input: {
+    height: 64, // Match the height used in AddPropertiesScreen
+    borderColor: "#ccc",
+    //borderWidth: 1,
+    borderRadius: 5,
+    marginBottom: '-10',
+    paddingLeft: 10,
+    //paddingVertical: 10,
+  },
+  countRowContainer: {
+    marginBottom: 20,
+  },
+  countRow: {
+    flexDirection: 'row',
+    gap: 15,
+    paddingVertical: 10,
+  },
+  uploadButton: {
+    width: "100%",
+    marginBottom: 10,
+    padding: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#7B61FF',
+    borderRadius: 50,
+  },
+  imagePreviewContainer: {
+    width: '100%',
+    height: 150,
+    marginBottom: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#7B61FF',
+  },
+  tab: {
+    flex: 1,
+    padding: 10,
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  selectedTab: {
+    backgroundColor: '#7B61FF',
+  },
+  tabText: {
+    color: '#7B61FF',
+    fontWeight: 'bold',
+  },
+  selectedTabText: {
+    color: '#fff',
+  },
+  formContainer: {
+    maxHeight: 300,
+    width: '100%',
   },
 });
 

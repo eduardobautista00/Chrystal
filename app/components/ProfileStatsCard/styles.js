@@ -20,8 +20,22 @@ const styles = StyleSheet.create({
   },
   stat: {
     alignItems: 'center',
+    //borderWidth: 1,
+  },
+  statNumberContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    //width: '100%',
+    justifyContent: 'space-between',
+    //borderWidth: 1,
   },
   statNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
+    //marginHorizontal: 5,
+  },
+  loadingText: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#000',
@@ -30,6 +44,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#7F8CA1',
     fontWeight: 'regular',
+  },
+  statIcon: {
+    marginHorizontal: 3,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 5,
   },
 });
 
