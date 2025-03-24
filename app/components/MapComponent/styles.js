@@ -347,6 +347,7 @@ const styles = StyleSheet.create({
   customButton: {
     position: 'absolute',
     bottom: isMobile ? 110 : isTablet ? 0 : 0,  // Adjust button position for different screen sizes
+    bottom: isMobile ? 110 : isTablet ? 0 : 0,  // Adjust button position for different screen sizes
     right: 20,
     backgroundColor: '#fff',
     borderRadius: 30,

@@ -14,10 +14,12 @@ const PropertyList = ({ navigation, isDarkMode }) => {
   // Function to convert currency code to symbol
   const getCurrencySymbol = (currencyCode) => {
     switch (currencyCode.toUpperCase()) {
+    switch (currencyCode.toUpperCase()) {
       case 'USD':
         return '$';
       case 'EUR':
         return '€';
+      case 'JPY':
       case 'JPY':
         return '¥';
       default:
@@ -71,6 +73,10 @@ const PropertyList = ({ navigation, isDarkMode }) => {
         style={[styles.propertyItem, { backgroundColor: isDarkMode ? '#1A1A1A' : '#ECEAFF', borderColor: isDarkMode ? '#fff' : '#000', borderWidth: isDarkMode ? 0.5 : 0 }]}
         onPress={() => navigation.navigate('PropertyDetails', { property: item })} // Pass property details to the next screen
       >
+        <Image 
+          source={{ uri: item.image_url ? item.image_url : 'https://dummyimage.com/100x100' }} 
+          style={styles.propertyImage} 
+        />
         <Image 
           source={{ uri: item.image_url ? item.image_url : 'https://dummyimage.com/100x100' }} 
           style={styles.propertyImage} 

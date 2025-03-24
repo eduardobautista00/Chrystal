@@ -13,16 +13,19 @@ import {
   ScrollView,
   Dimensions,
   Switch,
+  Switch,
 } from 'react-native';
 import { Calendar, Agenda } from 'react-native-calendars';
 import YearlyCalendar from '../YearlyCalendar'
 import { Picker } from '@react-native-picker/picker';
+import DropDownPicker from 'react-native-dropdown-picker';
 import DropDownPicker from 'react-native-dropdown-picker';
 import DateTimePicker from '@react-native-community/datetimepicker'; // Import DateTimePicker for time input
 import styles from './styles';
 import getEnvVars from '../../config/env';
 import { useAuth } from "../../context/AuthContext";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { theme } from '../../core/theme';
 import { theme } from '../../core/theme';
 import * as Notifications from 'expo-notifications';
 import { useDarkMode } from '../../context/DarkModeContext';
@@ -49,6 +52,7 @@ export default function CalendarComponent() {
   const flatListRef = useRef(null); // Initialize flatListRef
   const screenWidth = Dimensions.get('window').width;
   const [selectedHour, setSelectedHour] = useState(null);
+  const [debounceTimeout, setDebounceTimeout] = useState(null);
   const [debounceTimeout, setDebounceTimeout] = useState(null);
 
   // New buyer todo form states
@@ -157,6 +161,11 @@ export default function CalendarComponent() {
     setBuyerAlreadyExists(value); // Set state directly based on the switch value
     console.log('Buyer Already Exists:', value);
   }
+
+  const handleBuyerAlreadyExists = (value) => {
+    setBuyerAlreadyExists(value); // Set state directly based on the switch value
+    console.log('Buyer Already Exists:', value);
+  }
   
 
   const handleDatePress = (date) => {
@@ -232,6 +241,19 @@ export default function CalendarComponent() {
     }
   };
   
+
+  const checkExistingTodoAtTime = (selectedDate, selectedTime, todos) => {
+    if (!todos[selectedDate]) return false;
+
+    const timeStr = selectedTime instanceof Date 
+      ? selectedTime.toTimeString().slice(0, 5)
+      : selectedTime;
+
+    return todos[selectedDate].some(todo => {
+      const todoTime = new Date(todo.deadline).toTimeString().slice(0, 5);
+      return todoTime === timeStr;
+    });
+  };
 
   const checkExistingTodoAtTime = (selectedDate, selectedTime, todos) => {
     if (!todos[selectedDate]) return false;
@@ -389,16 +411,88 @@ export default function CalendarComponent() {
 
   // Helper function to process adding a buyer todo
   const processBuyerTodo = async () => {
-    try {
-      setLoading(true);
+      const hasExistingTodo = checkExistingTodoAtTime(selectedDate, time, todos);
+      
+      if (hasExistingTodo) {
+        setPendingAction(() => processAddTodo);
+        setTimeConflictModalVisible(true);
+        return;
+      }
 
+      processAddTodo();
+    } else {
+      Alert.alert('Error', 'Please fill in all fields');
+    }
+  };
+
+  const handleAddBuyerTodo = async () => {
+    if (loading) return;
+
+    let errorMessages = [];
+
+    // Validation logic using if-else for buyerAlreadyExists
+    if (buyerAlreadyExists) {
+      // Collect error messages for fields when buyer already exists
+      if (!buyerEmail) {
+        errorMessages.push('Buyer Email');
+      }
+      if (!buyerTodoTitle) {
+        errorMessages.push('To-Do Title');
+      }
+      if (selectedBuyerProperties.length === 0) {
+        errorMessages.push('Property/s');
+      }
+    } else {
+      // Collect error messages for fields when buyer does not exist
+      if (!buyerFirstName) {
+        errorMessages.push('Buyer First Name');
+      }
+      if (!buyerLastName) {
+        errorMessages.push('Buyer Last Name');
+      }
+      if (!buyerPhone) {
+        errorMessages.push('Buyer Phone Number');
+      }
+      if (selectedBuyerProperties.length === 0) {
+        errorMessages.push('Property/s');
+      }
+      if (!buyerTodoTitle) {
+        errorMessages.push('To-Do Title');
+      }
+      if (!buyerEmail) {
+        errorMessages.push('Buyer Email');
+      }
+    }
+
+    // If there are any error messages, alert the user
+    if (errorMessages.length > 0) {
+      Alert.alert('Please fill in all empty fields', errorMessages.join('\n'));
+      return;
+    }
+
+    const hasExistingTodo = checkExistingTodoAtTime(selectedDate, time, todos);
+      
+    if (hasExistingTodo) {
+      setPendingAction(() => processBuyerTodo);
+      setTimeConflictModalVisible(true);
+      return;
+    }
+
+    processBuyerTodo();
+  };
+
+  // Helper function to process adding a regular todo
+  const processAddTodo = async () => {
+    try {
       const agentResponse = await fetch(`${apiUrl}/agents`);
       if (!agentResponse.ok) {
         throw new Error('Failed to fetch agents');
       }
       const agentData = await agentResponse.json();
 
-      const matchingAgent = agentData.agents.find(agent => agent.user_id === authState.user.id);
+      const matchingAgent = agentData.agents.find(
+        agent => agent.user_id === authState.user.id
+      );
       if (!matchingAgent) {
         throw new Error('Agent not found');
       }
@@ -408,7 +502,112 @@ export default function CalendarComponent() {
         : time;
 
       const formattedDeadline = `${selectedDate}T${formattedTime}`;
+
+      const todoData = {
+        title: newTodo,
+        deadline: formattedDeadline,
+        property_id: selectedProperty,
+        agent_id: matchingAgent.id,
+        for_buyer: false,
+      };
+
+      console.log('Request Data:', todoData);
+
+      const response = await fetch(`${apiUrl}/to-do-list`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(todoData),
+      });
+
+      const contentType = response.headers.get('Content-Type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error('API Error Response:', data);
+          throw new Error(`Failed to create To-Do: ${data.message || 'Unknown error'}`);
+        }
+
+        console.log('Response Data:', data);
+        // Success feedback
+        Alert.alert('Success', 'To-Do Created Successfully');
+        resetForm(); // Reset the form after adding the todo
+        setSelectedProperty(null); // Reset the selected property
+        setValue(null);
+        setModalVisible(false); // Close the modal
+        await fetchTodos(); // Fetch todos again to reflect the newly added todo
+      } else {
+        const rawResponse = await response.text();
+        console.error('Unexpected Response:', rawResponse);
+        throw new Error('Unexpected response format from server');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      Alert.alert('Error', error.message || 'An error occurred while adding the To-Do');
+    }
+  };
+
+  // Helper function to process adding a buyer todo
+  const processBuyerTodo = async () => {
+    try {
+      setLoading(true);
+
+      setLoading(true);
+
+      const agentResponse = await fetch(`${apiUrl}/agents`);
+      if (!agentResponse.ok) {
+        throw new Error('Failed to fetch agents');
+      }
+      const agentData = await agentResponse.json();
+
+
+      const matchingAgent = agentData.agents.find(agent => agent.user_id === authState.user.id);
+      if (!matchingAgent) {
+        throw new Error('Agent not found');
+      }
+
+
+      const formattedTime = time instanceof Date
+        ? time.toTimeString().slice(0, 5)
+        ? time.toTimeString().slice(0, 5)
+        : time;
+
+      const formattedDeadline = `${selectedDate}T${formattedTime}`;
+
+      const formattedDeadline = `${selectedDate}T${formattedTime}`;
       console.log('selected properties', selectedBuyerProperties);
+
+      let todoData;
+
+      if (buyerAlreadyExists) {
+        todoData = {
+          title: buyerTodoTitle,
+          deadline: formattedDeadline,
+          property_ids: selectedBuyerProperties,
+          agent_id: matchingAgent.id,
+          for_buyer: true,
+          buyer_id: buyerData.buyer_id,
+          buyer_already_exists: buyerAlreadyExists,
+        };
+      } else {
+        todoData = {
+          title: buyerTodoTitle,
+          deadline: formattedDeadline,
+          property_ids: selectedBuyerProperties,
+          agent_id: matchingAgent.id,
+          for_buyer: true,
+          buyer_first_name: buyerFirstName,
+          buyer_last_name: buyerLastName,
+          buyer_address: buyerAddress,
+          buyer_phone_number: buyerPhone,
+          email: buyerEmail,
+          buyer_already_exists: buyerAlreadyExists,
+        };
+      }
+
 
       let todoData;
 
@@ -447,6 +646,7 @@ export default function CalendarComponent() {
         body: JSON.stringify(todoData),
       });
 
+
       const responseText = await response.text();
       let data;
       try {
@@ -456,10 +656,13 @@ export default function CalendarComponent() {
         throw new Error('Invalid JSON response from server');
       }
 
+
       if (response.ok) {
         Alert.alert('Success', 'Buyer To-Do added successfully');
         // Reset buyer form
         resetForm();
+        setModalVisible(false);
+        await fetchTodos();
         setModalVisible(false);
         await fetchTodos();
       } else {
@@ -469,6 +672,7 @@ export default function CalendarComponent() {
       console.error('Error adding buyer to-do:', error);
       Alert.alert('Error', 'An error occurred while adding the buyer to-do');
     } finally {
+      setLoading(false);
       setLoading(false);
     }
   };
@@ -686,6 +890,8 @@ export default function CalendarComponent() {
     setBuyerPhone('');
     setSelectedBuyerProperties([]);
     setBuyerTodoTitle('');
+    setBuyerAlreadyExists(false);
+    setBuyerEmail('');
     setBuyerAlreadyExists(false);
     setBuyerEmail('');
   };
@@ -1184,6 +1390,8 @@ const handleMarkAsDone = async (todoId) => {
                     setModalVisible(false);
                     setSelectedProperty(null);
                     setValue(null);
+                    setSelectedProperty(null);
+                    setValue(null);
                     setEditingTodoId(null);
                   }}
                 >
@@ -1332,6 +1540,42 @@ const handleMarkAsDone = async (todoId) => {
                     selectedItemContainerStyle={styles.selectedItemContainer}
                   />
 
+                <DropDownPicker
+                    mode="BADGE"
+                    badgeDotColors={selectedBuyerProperties.map(id => {
+                      const property = properties.find(prop => prop.id === id);
+                      console.log('selectedBuyerPropertiesss', property); // Check the property object
+                      return property && property.pin_color ? property.pin_color : '#7B61FF'; // Use property color or default
+                    })}
+                    multiple={true}
+                    min={0}
+                    max={10}
+                    open={openBuyerProperties}
+                    value={selectedBuyerProperties}
+                    items={properties.map(property => ({
+                      label: property.property_name,
+                      value: property.id,
+                    }))}
+                    setOpen={setOpenBuyerProperties}
+                    setValue={(value) => {
+                      // Toggle selection
+                      setSelectedBuyerProperties(value);
+                    }}
+                    setItems={setProperties}
+                    searchable={true}
+                    searchPlaceholder="Search for properties"
+                    placeholder={selectedBuyerProperties.length > 0 
+                      ? selectedBuyerProperties.map(id => {
+                          const property = properties.find(prop => prop.id === id);
+                          return property ? property.property_name : null;
+                        }).join(', ') 
+                      : "Select Buyer Properties"}
+                    style={styles.dropdown}
+                    dropDownContainerStyle={styles.dropdownContainer}
+                    selectedItemLabelStyle={styles.selectedItemLabel}
+                    selectedItemContainerStyle={styles.selectedItemContainer}
+                  />
+
                 <TouchableOpacity
                   style={styles.addButton}
                   onPress={handleAddBuyerTodo}
@@ -1355,6 +1599,44 @@ const handleMarkAsDone = async (todoId) => {
                 </View>
               </>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Time Conflict Modal */}
+      <Modal
+        visible={timeConflictModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setTimeConflictModalVisible(false)}
+      >
+        <View style={styles.timeConflictModalContainer}>
+          <View style={styles.timeConflictModalContent}>
+            <Text style={styles.timeConflictModalTitle}>Time Conflict</Text>
+            <Text style={styles.timeConflictModalMessage}>
+              A todo already exists at this time. Would you like to choose a different time?
+            </Text>
+            
+            <View style={styles.timeConflictButtonContainer}>
+              <TouchableOpacity
+                style={[styles.timeConflictButton, styles.timeConflictPrimaryButton]}
+                onPress={() => {
+                  setTimeConflictModalVisible(false);
+                  setShowTimePicker(true);
+                }}
+              >
+                <Text style={styles.timeConflictButtonText}>Choose Different Time</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.timeConflictButton, styles.timeConflictCancelButton]}
+                onPress={() => setTimeConflictModalVisible(false)}
+              >
+                <Text style={[styles.timeConflictButtonText, styles.timeConflictCancelText]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

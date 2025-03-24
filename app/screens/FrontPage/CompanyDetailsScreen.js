@@ -19,6 +19,10 @@ export default function CompanyDetailsScreen({ navigation, route }) {
   const [coverageError, setCoverageError] = useState("");
   const [type, setType] = useState([]);
   const [typeError, setTypeError] = useState("");
+  const [coverage, setCoverage] = useState([]);
+  const [coverageError, setCoverageError] = useState("");
+  const [type, setType] = useState([]);
+  const [typeError, setTypeError] = useState("");
   const { agentInfo } = route.params; // Get agentInfo from navigation route parameters
   const register_user  = register.registerState;
   console.log('agentInfo', agentInfo);
@@ -41,18 +45,40 @@ export default function CompanyDetailsScreen({ navigation, route }) {
     }
     if (coverage.length === 0) {
       setCoverageError("Coverage is required");
+    if (coverage.length === 0) {
+      setCoverageError("Coverage is required");
       isValid = false;
+    } else {
+      setCoverageError("");
     } else {
       setCoverageError("");
     }
     if (type.length === 0) {
       setTypeError("Type is required");
+    if (type.length === 0) {
+      setTypeError("Type is required");
       isValid = false;
+    } else {
+      setTypeError("");
     } else {
       setTypeError("");
     }
 
     return isValid;
+  };
+
+  const toggleCoverage = (option) => {
+    setCoverageError(""); // Clear error when user makes a selection
+    setCoverage((prev) => 
+      prev.includes(option) ? prev.filter(item => item !== option) : [...prev, option]
+    );
+  };
+
+  const toggleType = (option) => {
+    setTypeError(""); // Clear error when user makes a selection
+    setType((prev) => 
+      prev.includes(option) ? prev.filter(item => item !== option) : [...prev, option]
+    );
   };
 
   const toggleCoverage = (option) => {
@@ -112,6 +138,7 @@ export default function CompanyDetailsScreen({ navigation, route }) {
     } finally {
       setIsSubmitting(false); // End loading
     }
+  };
   };
 
   return (
@@ -270,6 +297,60 @@ const styles = StyleSheet.create({
     top: 40,
     left: 30,
     paddingTop: 20
+  },
+  coverageContainer: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  coverageOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  propertyTypeContainer: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  propertyTypeOptions: {
+    flexDirection: 'column',
+    gap: 10,
+  },
+  propertyTypeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  coverageOptionButton: {
+    borderWidth: 2,
+    borderColor: "#7B61FF",
+    backgroundColor: "#7B61FF",
+    borderRadius: 20,
+    paddingVertical: 12,
+    marginVertical: 8,
+    alignItems: "center",
+    width: '30%',
+  },
+  propertyTypeOptionButton: {
+    borderWidth: 2,
+    borderColor: "#7B61FF",
+    backgroundColor: "#7B61FF",
+    borderRadius: 20,
+    paddingVertical: 12,
+    marginVertical: 8,
+    alignItems: "center",
+    width: '48%',
+  },
+  selectedCoverageOption: {
+    backgroundColor: "#FFFFFF", // Change background when selected
+    borderColor: "#7B61FF", // Keep border consistent
+  },
+  selectedPropertyTypeOption: {
+    backgroundColor: "#FFFFFF", // Change background when selected
+    borderColor: "#7B61FF", // Keep border consistent
+  },
+  optionText: {
+    color: '#FFFFFF',
+  },
+  selectedText: {
+    color: '#7B61FF',
   },
   coverageContainer: {
     marginBottom: 10,

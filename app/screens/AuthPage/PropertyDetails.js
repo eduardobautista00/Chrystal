@@ -14,10 +14,12 @@ import TextInput from "../../components/TextInput";
 // Function to map currency codes to their symbols
 const getCurrencySymbol = (currencyCode) => {
   switch (currencyCode.toUpperCase()) {
+  switch (currencyCode.toUpperCase()) {
     case 'USD':
       return '$';
     case 'EUR':
       return '€';
+    case 'JPY':
     case 'JPY':
       return '¥';
     default:
@@ -127,6 +129,7 @@ const PropertyDetails = ({ route, navigation }) => {
   const markPropertyAsSold = async (status, buyerId, isNewBuyer) => {
     try {
       const agentResponse = await fetch(`${apiUrl}/agents`);
+      if (!agentResponse.ok) throw new Error("Failed to fetch agents");
       if (!agentResponse.ok) throw new Error("Failed to fetch agents");
       const agentData = await agentResponse.json();
 
@@ -368,6 +371,7 @@ const PropertyDetails = ({ route, navigation }) => {
       source={{
         uri: propertyDetails?.image_url?.trim() 
           ? propertyDetails?.image_url 
+          : 'https://dummyimage.com/300x300'
           : 'https://dummyimage.com/300x300'
       }} 
       style={styles.image} 
@@ -684,6 +688,7 @@ const PropertyDetails = ({ route, navigation }) => {
           styles.closeButton,
           propertyDetails?.status === 'sold' && styles.disabledButton,
         ]}
+        disabled={propertyDetails?.status === 'sold'}
         disabled={propertyDetails?.status === 'sold'}
       >
         <Text style={styles.buttonText}>

@@ -5,6 +5,7 @@ import ProfileHeader from '../../components/ProfileHeader';
 import StatsCard from '../../components/ProfileStatsCard';
 import NotificationLists from '../../components/NotificationLists';
 import BackButton from '../../components/ProfileBackButton';
+import BackButton from '../../components/ProfileBackButton';
 import AnimatedBackground from "../../components/AnimatedBackground";
 import BottomNavigation from '../../components/BottomNavigation';
 import { useDarkMode } from '../../context/DarkModeContext';

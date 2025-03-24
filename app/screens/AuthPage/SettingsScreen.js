@@ -3,8 +3,10 @@ import { View, StyleSheet, Text, TouchableOpacity, Switch, Alert } from 'react-n
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import * as Device from 'expo-device';
 import ProfileHeader from '../../components/ProfileHeader';
 import StatsCard from '../../components/ProfileStatsCard';
+import BackButton from '../../components/ProfileBackButton';
 import BackButton from '../../components/ProfileBackButton';
 import BottomNavigation from '../../components/BottomNavigation';
 import { useAuth } from '../../context/AuthContext';
@@ -24,6 +26,7 @@ Notifications.setNotificationHandler({
 });
 
 const SettingsScreen = ({ navigation }) => {
+  const { authState, logout } = useAuth();
   const { authState, logout } = useAuth();
   const [pushEnabled, setPushEnabled] = useState(false);
   const [emailEnabled, setEmailEnabled] = useState(false);
@@ -83,7 +86,24 @@ const SettingsScreen = ({ navigation }) => {
 
       // Check if user has a device token already
       if (authState.user?.device_token) {
+      if (!Device.isDevice) {
+        Alert.alert('Error', 'Must use physical device for Push Notifications');
+        return;
+      }
+
+      // Check if user has a device token already
+      if (authState.user?.device_token) {
         setPushEnabled(true);
+      } else {
+        setPushEnabled(false);
+      }
+
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
       } else {
         setPushEnabled(false);
       }
@@ -97,7 +117,22 @@ const SettingsScreen = ({ navigation }) => {
       }
     };
 
+
     checkPermission();
+
+    const subscription = Notifications.addNotificationReceivedListener(notification => {
+      console.log('Notification received:', notification);
+    });
+
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('Notification response received:', response);
+    });
+
+    return () => {
+      subscription.remove();
+      responseSubscription.remove();
+    };
+  }, [authState.user?.device_token]);
 
     const subscription = Notifications.addNotificationReceivedListener(notification => {
       console.log('Notification received:', notification);

@@ -28,6 +28,14 @@ const styles = StyleSheet.create({
     //width: '100%',
     justifyContent: 'space-between',
     //borderWidth: 1,
+    //borderWidth: 1,
+  },
+  statNumberContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    //width: '100%',
+    justifyContent: 'space-between',
+    //borderWidth: 1,
   },
   statNumber: {
     fontSize: 20,
@@ -44,6 +52,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#7F8CA1',
     fontWeight: 'regular',
+  },
+  statIcon: {
+    marginHorizontal: 3,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 5,
   },
   statIcon: {
     marginHorizontal: 3,

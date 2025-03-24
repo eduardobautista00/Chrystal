@@ -24,6 +24,7 @@ export default function LoginScreen({ route, navigation }) {
   const [password, setPassword] = useState({ value: "", error: "" });
   const [rememberMe, setRememberMe] = useState(false);
   const { authState, login } = useAuth();
+  const { authState, login } = useAuth();
   const { someParam } = route.params;
 
   // Load saved credentials on initial render
@@ -96,8 +97,11 @@ export default function LoginScreen({ route, navigation }) {
     } catch (error) {
       console.error("Login failed:", error.message); // Log the error message
       Alert.alert("Login Failed", "An unexpected error occurred. Please try again."); // Show alert for unexpected errors
+      console.error("Login failed:", error.message); // Log the error message
+      Alert.alert("Login Failed", "An unexpected error occurred. Please try again."); // Show alert for unexpected errors
     }
   };
+  
   
 
   return (

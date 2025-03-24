@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import React, { useEffect } from "react";
 import { Provider } from "react-native-paper";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
@@ -11,6 +12,16 @@ import { checkAuthStatus } from './app/utils/authUtils';
 import { DarkModeProvider } from './app/context/DarkModeContext';
 
 export default function App() {
+  // useEffect(() => {
+  //   const checkAuth = async () => {
+  //     // Wait for navigation to be ready
+  //     setTimeout(async () => {
+  //       await checkAuthStatus(navigationRef.current);
+  //     }, 100);
+  //   };
+  //   checkAuth();
+  // }, []);
+
   // useEffect(() => {
   //   const checkAuth = async () => {
   //     // Wait for navigation to be ready

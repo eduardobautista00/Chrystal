@@ -1,6 +1,7 @@
 import 'react-native-get-random-values';
 import React, { useState, useEffect, useRef } from "react";
 import { View, StyleSheet, ActivityIndicator, Alert, Switch, TouchableOpacity } from "react-native";
+import { View, StyleSheet, ActivityIndicator, Alert, Switch, TouchableOpacity } from "react-native";
 import { Text } from "react-native-paper";
 import TextInput from "../../components/TextInput";
 import Button from "../../components/Button";
@@ -18,6 +19,7 @@ import DropDownPicker from 'react-native-dropdown-picker';
 import { useDarkMode } from "../../context/DarkModeContext";
 
 import axios from "axios";
+import axios from "axios";
 
 export default function AddPropertiesScreen({ navigation }) {
   const { authState } = useAuth();
@@ -31,8 +33,13 @@ export default function AddPropertiesScreen({ navigation }) {
     property_name: "",
     address: "",
     link: "",
+    property_name: "",
+    address: "",
+    link: "",
     latitude: "",
     longitude: "",
+    price: "",
+    area: "",
     price: "",
     area: "",
     currency: "USD",
@@ -42,7 +49,9 @@ export default function AddPropertiesScreen({ navigation }) {
     bathrooms: 1,
     garage: 1,
     seller_already_exists: false,
+    seller_already_exists: false,
     user_id: authState.user.id,
+    seller_id: null, // Ensure seller_id is null
     seller_id: null, // Ensure seller_id is null
     seller: {
       seller_first_name: "",
@@ -50,10 +59,17 @@ export default function AddPropertiesScreen({ navigation }) {
       seller_phone_number: "",
       seller_address: "",
       seller_email: ""
+      seller_first_name: "",
+      seller_last_name: "",
+      seller_phone_number: "",
+      seller_address: "",
+      seller_email: ""
     },
+    property_type: "",
     property_type: "",
   });
 
+  const [phone, setPhone] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const addressChangeTimeout = useRef(null);
@@ -636,6 +652,8 @@ export default function AddPropertiesScreen({ navigation }) {
         longitude={formData.longitude}
         price={formData.price}
         area={formData.area}
+        currency={formData.currency}
+        unit={formData.unit}
         currency={formData.currency}
         unit={formData.unit}
         onPriceChange={(value) => handleInputChange("price", value)}

@@ -22,6 +22,8 @@ const BottomNavigation = ({ isDarkMode }) => {
       <TouchableOpacity 
         style={[styles.navButton, currentRoute === 'ProfileScreen' && { backgroundColor: '#7B61FF' }]}
         onPress={() => navigation.navigate('ProfileScreen')}
+        style={[styles.navButton, currentRoute === 'ProfileScreen' && { backgroundColor: '#7B61FF' }]}
+        onPress={() => navigation.navigate('ProfileScreen')}
       >
         <Text>
           <MaterialIcons 
@@ -37,6 +39,8 @@ const BottomNavigation = ({ isDarkMode }) => {
       </TouchableOpacity>
 
      <TouchableOpacity 
+        style={[styles.navButton, currentRoute === 'CalendarScreen' && { backgroundColor: '#7B61FF' }]}
+        onPress={() => navigation.navigate('CalendarScreen')}
         style={[styles.navButton, currentRoute === 'CalendarScreen' && { backgroundColor: '#7B61FF' }]}
         onPress={() => navigation.navigate('CalendarScreen')}
       >
@@ -56,6 +60,8 @@ const BottomNavigation = ({ isDarkMode }) => {
       <TouchableOpacity 
         style={[styles.navButton, currentRoute === 'StatisticsScreen' && { backgroundColor: '#7B61FF' }]}
         onPress={() => navigation.navigate('StatisticsScreen')}
+        style={[styles.navButton, currentRoute === 'StatisticsScreen' && { backgroundColor: '#7B61FF' }]}
+        onPress={() => navigation.navigate('StatisticsScreen')}
       >
         <Text>
           <MaterialIcons 
@@ -73,6 +79,8 @@ const BottomNavigation = ({ isDarkMode }) => {
       <TouchableOpacity 
         style={[styles.navButton, currentRoute === 'NotificationScreen' && { backgroundColor: '#7B61FF' }]}
         onPress={() => navigation.navigate('NotificationScreen')}
+        style={[styles.navButton, currentRoute === 'NotificationScreen' && { backgroundColor: '#7B61FF' }]}
+        onPress={() => navigation.navigate('NotificationScreen')}
       >
         <Text>
           <MaterialIcons 
@@ -88,6 +96,8 @@ const BottomNavigation = ({ isDarkMode }) => {
       </TouchableOpacity>
 
       <TouchableOpacity 
+        style={[styles.navButton, currentRoute === 'SettingsScreen' && { backgroundColor: '#7B61FF' }]}
+        onPress={() => navigation.navigate('SettingsScreen')}
         style={[styles.navButton, currentRoute === 'SettingsScreen' && { backgroundColor: '#7B61FF' }]}
         onPress={() => navigation.navigate('SettingsScreen')}
       >

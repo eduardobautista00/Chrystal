@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text } from "react-native";
+import { View, Text } from "react-native";
 import { TextInput as PaperTextInput } from "react-native-paper";
 import { theme } from "../../core/theme";
 import styles from "./styles";
@@ -15,6 +16,7 @@ const TextInput = React.forwardRef(({ errorText, description, right, variant, ..
         selectionColor={theme.colors.primary}
         underlineColor="transparent"
         mode="outlined"
+        right={right ? <PaperTextInput.Icon icon={() => right} /> : null}
         right={right ? <PaperTextInput.Icon icon={() => right} /> : null}
         {...props}
       />

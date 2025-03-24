@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, FlatList, ScrollView, Dimensions } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Modal, FlatList, ScrollView, Dimensions } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import styles from './styles';
 import Slider from '@react-native-community/slider';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
@@ -237,6 +240,7 @@ export default function FilterScreen(props) {
     setSelectedColor(null);
     setIsModalVisible(false);
     setSelectedFilterId(null);
+    setSelectedFilterId(null);
   };
   
   const deleteFilter = async (id) => {
@@ -314,6 +318,11 @@ export default function FilterScreen(props) {
           props.onFilterChange({}); // Pass an empty object to reset the filter
           props.refRBSheet.current.close();
         }}>
+        <TouchableOpacity style={styles.allFilter} onPress={() => {
+          setSelectedFilterId(null); // Reset the selected filter ID
+          props.onFilterChange({}); // Pass an empty object to reset the filter
+          props.refRBSheet.current.close();
+        }}>
           <Text style={styles.allText}>All</Text>
         </TouchableOpacity>
         {filters.map((filter) => (
@@ -337,6 +346,7 @@ export default function FilterScreen(props) {
               <Text style={styles.deleteText}>🗑️</Text>
             </TouchableOpacity>
           </TouchableOpacity>
+          </TouchableOpacity>
         ))}
         <TouchableOpacity onPress={() => openModal()} style={styles.addFilter}>
           <Text style={styles.addFilterText}>Add filter</Text>
@@ -345,6 +355,7 @@ export default function FilterScreen(props) {
 
       {/* Modal for adding/editing a filter */}
       <Modal visible={isModalVisible} transparent={true} animationType="slide">
+        
         
         <View style={styles.modalContainer}>
           <ScrollView contentContainerStyle={styles.modalContent}> 
@@ -377,7 +388,9 @@ export default function FilterScreen(props) {
             {/* Character counter moved inside the modal */}
             <View style={styles.characterCounterContainer}>
               <Text style={styles.characterCounterText}>
+              <Text style={styles.characterCounterText}>
                 {newFilterName.length} / 15
+              </Text>
               </Text>
             </View>
 
@@ -568,6 +581,7 @@ export default function FilterScreen(props) {
               style={[styles.saveButton, { opacity: newFilterName.length === 0 ? 0.5 : 1 }]} 
               disabled={newFilterName.length === 0}
             >
+              <Text style={styles.saveButtonText}>Save</Text>
               <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
         </View>

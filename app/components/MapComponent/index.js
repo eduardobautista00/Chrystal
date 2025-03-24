@@ -24,14 +24,22 @@ import MarkerList from '../../components/MarkerList';
 export default function MapComponent({ selectedFilter }) {
   const mapRef = useRef(null);
   const { property } = useData();
+  const { property } = useData();
   const [currentRegion, setCurrentRegion] = useState(null);
   const [loading, setLoading] = useState(true);
   const [markers, setMarkers] = useState([]);
   const [filteredMarkers, setFilteredMarkers] = useState([]);
   const [customFilteredMarkers, setCustomFilteredMarkers] = useState([]);
+  const [customFilteredMarkers, setCustomFilteredMarkers] = useState([]);
   const [isMarkersFetched, setIsMarkersFetched] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [selectedFilters, setSelectedFilters] = useState([]);
+  const [tapMarker, setTapMarker] = useState(null); // State to store tapped marker location
+  const [modalVisible, setModalVisible] = useState(false); // Modal visibility state
+  const [modalLocation, setModalLocation] = useState(null); // Store location data for modal
+  const { authState } = useAuth();
+  const [pinColor, setPinColor] = useState('#FF0000'); // Default marker color
+  const propertyTypeOptions = ['House', 'Townhouse', 'Unit', 'Land'];
   const [tapMarker, setTapMarker] = useState(null); // State to store tapped marker location
   const [modalVisible, setModalVisible] = useState(false); // Modal visibility state
   const [modalLocation, setModalLocation] = useState(null); // Store location data for modal
@@ -416,12 +424,15 @@ export default function MapComponent({ selectedFilter }) {
   const centerMapOnUser = () => {
   
     //console.log('[MapComponent] Centering map on user location');
+  
+    //console.log('[MapComponent] Centering map on user location');
     if (mapRef.current) {
       mapRef.current.animateToRegion(currentRegion, 1000);
     }
   };
 
   const handleClear = async () => {
+    //console.log('[MapComponent] Clearing search and filters');
     //console.log('[MapComponent] Clearing search and filters');
     setSearchValue('');
     setSelectedFilters([]);
@@ -471,8 +482,10 @@ export default function MapComponent({ selectedFilter }) {
       Alert.alert('No results found', 'No properties matched your search.');
     }
   };
+  };
 
   const handleFilterToggle = (filter) => {
+    //console.log('[MapComponent] Toggling filter:', filter);
     //console.log('[MapComponent] Toggling filter:', filter);
     setSelectedFilters(prevFilters =>
       prevFilters.includes(filter)
@@ -492,6 +505,8 @@ export default function MapComponent({ selectedFilter }) {
     try {
       //console.log('[MapComponent] Requesting user location...');
 
+      //console.log('[MapComponent] Requesting user location...');
+
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('Permission Denied', 'Permission to access location was denied.');
@@ -499,12 +514,14 @@ export default function MapComponent({ selectedFilter }) {
       }
 
       //console.log('[MapComponent] Location permission granted.');
+      //console.log('[MapComponent] Location permission granted.');
 
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
         timeout: 20000,
       });
 
+      //console.log('[MapComponent] Fetched location:', location);
       //console.log('[MapComponent] Fetched location:', location);
 
       const userRegion = {
@@ -516,7 +533,9 @@ export default function MapComponent({ selectedFilter }) {
 
       setCurrentRegion(userRegion);
       //console.log('[MapComponent] Updated region to user location:', userRegion);
+      //console.log('[MapComponent] Updated region to user location:', userRegion);
     } catch (error) {
+      //console.error('[MapComponent] Error fetching location:', error);
       //console.error('[MapComponent] Error fetching location:', error);
       Alert.alert('Error', 'Unable to fetch location. Using default location.');
       setCurrentRegion(defaultRegion); // Fallback to default region
@@ -527,6 +546,7 @@ export default function MapComponent({ selectedFilter }) {
 
   useEffect(() => {
     setCurrentRegion(defaultRegion);
+    //console.log('[MapComponent] Set default region:', defaultRegion);
     //console.log('[MapComponent] Set default region:', defaultRegion);
     fetchUserLocation();
   }, []);
@@ -663,6 +683,7 @@ export default function MapComponent({ selectedFilter }) {
   useEffect(() => {
     if (currentRegion && mapRef.current) {
       //console.log('[MapComponent] Animating map to current region:', currentRegion);
+      //console.log('[MapComponent] Animating map to current region:', currentRegion);
       mapRef.current.animateToRegion(currentRegion, 1000);
     }
   }, [currentRegion]);
@@ -670,7 +691,11 @@ export default function MapComponent({ selectedFilter }) {
   const zoomOut = () => {
     if (mapRef.current) {
       mapRef.current.animateToRegion({...currentRegion, latitudeDelta: 0.025, longitudeDelta: 0.025}, 1000);
+  const zoomOut = () => {
+    if (mapRef.current) {
+      mapRef.current.animateToRegion({...currentRegion, latitudeDelta: 0.025, longitudeDelta: 0.025}, 1000);
     }
+  };
   };
 
   const zoomToMarker = (marker) => {
@@ -812,6 +837,93 @@ export default function MapComponent({ selectedFilter }) {
   const handleSearchFocus = (focused) => {
     setIsSearching(focused);
   };
+
+  // Handle map press: create a new marker and show modal
+  const handleMapPress = (e) => {
+    const coordinate = e.nativeEvent.coordinate;
+    const newMarker = {
+      coordinate,
+      title: 'New Marker',
+      description: `Lat: ${coordinate.latitude}, Lon: ${coordinate.longitude}`,
+      //color: markerColor, // Add the selected color to the marker
+    };
+
+    // Add the new marker to the list of markers
+    //setMarkers(prevMarkers => [...prevMarkers, newMarker]);
+    //setFilteredMarkers(prevMarkers => [...prevMarkers, newMarker]);
+
+    setModalLocation(coordinate); // Set the tapped location for the modal
+    setModalVisible(true); // Show the modal
+
+    // New code to get user_id, latitude, longitude, and address
+    const userId = authState.user.id; // Get user ID from authState
+    const latitude = coordinate.latitude; // Get latitude from coordinate
+    const longitude = coordinate.longitude; // Get longitude from coordinate
+    const address = `Lat: ${latitude}, Lon: ${longitude}`; // Example address, you may want to use a geocoding service
+
+    // You can now use userId, latitude, longitude, and address as needed
+    //console.log('User ID:', userId, 'Latitude:', latitude, 'Longitude:', longitude, 'Address:', address);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false); // Close the modal
+    setModalLocation(null); // Reset the location data
+  };
+
+  const handleImageUpload = async () => {
+    // Request permission to access the media library
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      Alert.alert("Permission to access camera roll is required!");
+      return;
+    }
+
+    // Launch the image picker
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    // Check if the user canceled the picker
+    if (result.canceled) {
+      //console.log("Image picker was canceled");
+      return;
+    }
+
+    // Log the result to see the structure of the response
+    //console.log("Image picker result:", result);
+
+    // Set the selected image URI to the formData state
+    if (result.assets && result.assets.length > 0) {
+      const imageUri = result.assets[0].uri; // Access the URI from the first asset
+      //console.log("Selected Image:", imageUri);
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        image: imageUri,
+        pin_color: pinColor, // Ensure pin_color is updated in formData
+      }));
+    } else {
+      // New code to handle the case where no image URI is returned
+      Alert.alert("Error", "No image URI returned from the image picker.");
+    }
+  };
+
+  const handlePropertyTypeSelect = (value) => {
+    // Set the property type directly to the selected value
+    handleInputChange("property_type", value); // Update formData with the selected property type
+    console.log('Property type selected:', value); // Log the selected property type
+  };
+
+  useEffect(() => {
+    console.log('Markers being rendered:', filteredMarkers.map(m => ({
+      title: m.title,
+      color: m.color,
+      pin_color: m.pin_color
+    })));
+  }, [filteredMarkers]);
 
   return (
       <View style={styles.container}>

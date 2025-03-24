@@ -56,11 +56,17 @@ export default function AddPropertyImageScreen({ route }) {
       // Log the result to see the structure of the response
       console.log("Image picker result:", result);
 
+      // Log the result to see the structure of the response
+      console.log("Image picker result:", result);
+
       if (!result.canceled) {
         const selectedImageUri = result.assets[0].uri;
         const imageFile = await uriToFile(selectedImageUri, "property_image.jpg");
         setSelectedImage(selectedImageUri);
+        setSelectedImage(selectedImageUri);
         setImageUri(selectedImageUri);
+        console.log("Selected Image:", selectedImageUri);
+        console.log("Selected Image URL/uri:", imageFile);
         console.log("Selected Image:", selectedImageUri);
         console.log("Selected Image URL/uri:", imageFile);
       }

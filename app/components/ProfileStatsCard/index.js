@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import styles from './styles';
 import { useAuth } from "../../context/AuthContext";
 import getEnvVars from '../../config/env';
@@ -125,6 +126,7 @@ const StatsCard = ({ isDarkMode }) => {
             <Text style={[styles.statLabel, isDarkMode && { color: '#fff' }]}>Properties</Text>
             </View>
           </View>
+        
         
           <View style={styles.stat}>
             <Text style={[styles.statNumber, isDarkMode && { color: '#fff' }]}>{todosCount}</Text>

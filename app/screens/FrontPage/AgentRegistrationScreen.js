@@ -8,6 +8,8 @@ import BackButton from '../../components/BackButton';
 import { useData } from "../../context/DataContext"; // Import useData
 import { Dropdown } from 'react-native-element-dropdown'; // Import Dropdown component
 import getEnvVars from '../../config/env';
+import { Dropdown } from 'react-native-element-dropdown'; // Import Dropdown component
+import getEnvVars from '../../config/env';
 
 export default function AgentRegistrationScreen({ navigation }) {
   const { register } = useData(); // Access register and registerAgent
@@ -18,6 +20,7 @@ export default function AgentRegistrationScreen({ navigation }) {
     full_name: '',
     email: '',
     password: '',
+    license_number: '',
     license_number: '',
     address: '',
     coverage: '',
@@ -74,6 +77,7 @@ export default function AgentRegistrationScreen({ navigation }) {
 
   //console.log(register);
   //console.log(user);  
+  //console.log(user);  
 
   useEffect(() => {
     if (register_user && register_user.register_user.fullName) {
@@ -93,12 +97,37 @@ export default function AgentRegistrationScreen({ navigation }) {
     const newErrors = {};
     if (!agentData.full_name) newErrors.full_name = "Full Name is required";
     if (!agentData.license_number) newErrors.license_number = "License Number is required";
+    if (!agentData.full_name) newErrors.full_name = "Full Name is required";
+    if (!agentData.license_number) newErrors.license_number = "License Number is required";
     if (!agentData.address) newErrors.address = "Address is required";
     if (!agentData.coverage) newErrors.coverage = "Coverage is required";
+    if (!agentData.property_type) newErrors.property_type = "Type is required";
     if (!agentData.property_type) newErrors.property_type = "Type is required";
     if (company === null) Alert.alert('Error', 'Please select if you are with a company');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0 && company !== null;
+  };
+
+  const checkLicenseNumberExists = async (licenseNumber) => {
+    try {
+      const response = await fetch(`${apiUrl}/agents`); // Replace with your actual API endpoint
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await response.json(); // Get the JSON data
+      const agents = data.agents; // Access the agents array from the response
+
+      // Ensure agents is an array before calling some
+      if (Array.isArray(agents)) {
+        return agents.some(agent => agent.license_number === licenseNumber);
+      } else {
+        console.error('Expected an array but got:', agents);
+        return false; // Return false if agents is not an array
+      }
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+      return false; // Assume the license number does not exist if there's an error
+    }
   };
 
   const checkLicenseNumberExists = async (licenseNumber) => {
@@ -189,6 +218,9 @@ export default function AgentRegistrationScreen({ navigation }) {
 
     if (agentInfo.with_company === true && !errors.license_number) {
       console.log('Navigating to CompanyDetailsScreen with agentInfo:', agentInfo);
+
+    if (agentInfo.with_company === true && !errors.license_number) {
+      console.log('Navigating to CompanyDetailsScreen with agentInfo:', agentInfo);
       navigation.navigate('CompanyDetailsScreen', { agentInfo });
     } else {
       try {
@@ -219,6 +251,8 @@ export default function AgentRegistrationScreen({ navigation }) {
       } catch (error) {
         console.error('Registration error:', error);
         Alert.alert('Registration Error', error.message || 'An error occurred while registering. Please try again.');
+        console.error('Registration error:', error);
+        Alert.alert('Registration Error', error.message || 'An error occurred while registering. Please try again.');
       }
     }
   };
@@ -240,6 +274,7 @@ export default function AgentRegistrationScreen({ navigation }) {
         // Optionally, you can check for other common error phrases and set the relevant errors
         if (errorMessage.includes('license number')) {
           newErrors.license_number = 'License number is required or already taken.';
+          newErrors.license_number = 'License number is required or already taken.';
         }
         if (errorMessage.includes('address')) {
           newErrors.address = 'Address is required or already in use.';
@@ -249,6 +284,7 @@ export default function AgentRegistrationScreen({ navigation }) {
         }
         if (errorMessage.includes('property type')) {
           newErrors.property_type = 'Property type is required.';
+          newErrors.property_type = 'Property type is required.';
         }
       }
   
@@ -256,8 +292,10 @@ export default function AgentRegistrationScreen({ navigation }) {
       if (errorData.errors) {
         if (errorData.errors.email) newErrors.email = errorData.errors.email.join(' ');
         if (errorData.errors.license_number) newErrors.license_number = errorData.errors.license_number.join(' ');
+        if (errorData.errors.license_number) newErrors.license_number = errorData.errors.license_number.join(' ');
         if (errorData.errors.address) newErrors.address = errorData.errors.address.join(' ');
         if (errorData.errors.coverage) newErrors.coverage = errorData.errors.coverage.join(' ');
+        if (errorData.errors.property_type) newErrors.property_type = errorData.errors.property_type.join(' ');
         if (errorData.errors.property_type) newErrors.property_type = errorData.errors.property_type.join(' ');
       }
   
@@ -290,6 +328,10 @@ export default function AgentRegistrationScreen({ navigation }) {
         onChangeText={(text) => setAgentData((prevData) => ({ ...prevData, full_name: text }))}
         error={!!errors.full_name}
         errorText={errors.full_name}
+        value={agentData.full_name}
+        onChangeText={(text) => setAgentData((prevData) => ({ ...prevData, full_name: text }))}
+        error={!!errors.full_name}
+        errorText={errors.full_name}
         style={styles.input}
       />
   
@@ -301,8 +343,13 @@ export default function AgentRegistrationScreen({ navigation }) {
         onChangeText={(text) => setAgentData((prevData) => ({ ...prevData, license_number: text }))}
         error={!!errors.license_number || !!errors.registration}
         errorText={errors.license_number || errors.registration}
+        value={agentData.license_number}
+        onChangeText={(text) => setAgentData((prevData) => ({ ...prevData, license_number: text }))}
+        error={!!errors.license_number || !!errors.registration}
+        errorText={errors.license_number || errors.registration}
         style={styles.input}
       />
+
 
   
       {/* Address Input */}
@@ -317,6 +364,28 @@ export default function AgentRegistrationScreen({ navigation }) {
       />
   
       {/* Coverage Area Input */}
+      <View style={styles.coverageContainer}>
+        <Text style={styles.label}>Coverage</Text>
+        <View style={styles.coverageOptions}>
+          {coverageOptions.map((option) => (
+            <TouchableOpacity 
+              key={option} 
+              onPress={() => handleCoverageSelect(option)} 
+              style={[
+                styles.coverageOptionButton,
+                agentData.coverage.split(',').map(item => item.trim()).includes(option) && styles.selectedCoverageOption
+              ]}
+            >
+              <Text style={[
+                styles.optionText,
+                agentData.coverage.split(',').map(item => item.trim()).includes(option) && styles.selectedText
+              ]}>{option}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <Text style={styles.selectedText}>Selected Coverage: {agentData.coverage}</Text>
+        {errors.coverage && <Text style={styles.errorText}>{errors.coverage}</Text>}
+      </View>
       <View style={styles.coverageContainer}>
         <Text style={styles.label}>Coverage</Text>
         <View style={styles.coverageOptions}>
@@ -382,6 +451,47 @@ export default function AgentRegistrationScreen({ navigation }) {
         <Text style={styles.selectedText}>Selected Property Type: {agentData.property_type}</Text>
         {errors.property_type && <Text style={styles.errorText}>{errors.property_type}</Text>}
       </View>
+      <View style={styles.propertyTypeContainer}>
+        <Text style={styles.label}>Property Type</Text>
+        <View style={styles.propertyTypeOptionsContainer}>
+          <View style={styles.propertyTypeRow}>
+            {propertyTypeOptions.slice(0, 2).map((option) => (
+              <TouchableOpacity 
+                key={option} 
+                onPress={() => handlePropertyTypeSelect(option)} 
+                style={[
+                  styles.propertyTypeOptionButton,
+                  agentData.property_type.split(',').map(item => item.trim()).includes(option) && styles.selectedPropertyTypeOption
+                ]}
+              >
+                <Text style={[
+                  styles.optionText,
+                  agentData.property_type.split(',').map(item => item.trim()).includes(option) && styles.selectedText
+                ]}>{option}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.propertyTypeRow}>
+            {propertyTypeOptions.slice(2, 4).map((option) => (
+              <TouchableOpacity 
+                key={option} 
+                onPress={() => handlePropertyTypeSelect(option)} 
+                style={[
+                  styles.propertyTypeOptionButton,
+                  agentData.property_type.split(',').map(item => item.trim()).includes(option) && styles.selectedPropertyTypeOption
+                ]}
+              >
+                <Text style={[
+                  styles.optionText,
+                  agentData.property_type.split(',').map(item => item.trim()).includes(option) && styles.selectedText
+                ]}>{option}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+        <Text style={styles.selectedText}>Selected Property Type: {agentData.property_type}</Text>
+        {errors.property_type && <Text style={styles.errorText}>{errors.property_type}</Text>}
+      </View>
   
       {/* Company Selection */}
       <Text style={styles.companyText}>Are you with a company?</Text>
@@ -393,11 +503,17 @@ export default function AgentRegistrationScreen({ navigation }) {
               setCompany("Yes");
               console.log(agentData.with_company); // Log the current state
             }
+            if (company !== "Yes") { // Check if the button is already selected
+              setAgentData((prevData) => ({ ...prevData, with_company: true }));
+              setCompany("Yes");
+              console.log(agentData.with_company); // Log the current state
+            }
           }}
           style={[
             styles.optionButton,
             company === "Yes" && styles.selectedButton,
           ]}
+          disabled={company === "Yes"} // Disable button if already selected
           disabled={company === "Yes"} // Disable button if already selected
         >
           <Text
@@ -417,11 +533,17 @@ export default function AgentRegistrationScreen({ navigation }) {
               setCompany("No");
               console.log(agentData.with_company); // Log the current state
             }
+            if (company !== "No") { // Check if the button is already selected
+              setAgentData((prevData) => ({ ...prevData, with_company: false }));
+              setCompany("No");
+              console.log(agentData.with_company); // Log the current state
+            }
           }}
           style={[
             styles.optionButton,
             company === "No" && styles.selectedButton,
           ]}
+          disabled={company === "No"} // Disable button if already selected
           disabled={company === "No"} // Disable button if already selected
         >
           <Text
@@ -493,6 +615,7 @@ const styles = StyleSheet.create({
   optionText: {
     color: '#FFFFFF',
     fontSize: 16,
+    fontSize: 16,
   },
   selectedButton: {
     backgroundColor: "#FFFFFF", // Change background when selected
@@ -515,6 +638,64 @@ const styles = StyleSheet.create({
     top: 40,
     left: 30,
     //paddingTop: 20
+  },
+  coverageOptionButton: {
+    borderWidth: 2,
+    borderColor: "#7B61FF",
+    backgroundColor: "#7B61FF",
+    borderRadius: 20,
+    paddingVertical: 12,
+    //paddingHorizontal: 24,
+    marginVertical: 8,
+    alignItems: "center",
+    justifyContent: 'center',
+    width: '30%'
+  },
+  propertyTypeOptionButton: {
+    borderWidth: 2,
+    borderColor: "#7B61FF",
+    backgroundColor: "#7B61FF",
+    borderRadius: 20,
+    paddingVertical: 12,
+    //paddingHorizontal: 24,
+    marginVertical: 8,
+    alignItems: "center",
+    justifyContent: 'center',
+    width: '50%'
+  },
+  coverageContainer: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  coverageOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  propertyTypeContainer: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  propertyTypeOptionsContainer: {
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  propertyTypeRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  selectedCoverageOption: {
+    backgroundColor: "#FFFFFF", // Change background when selected
+    borderColor: "#7B61FF", // Keep border consistent
+  },
+  selectedPropertyTypeOption: {
+    backgroundColor: "#FFFFFF", // Change background when selected
+    borderColor: "#7B61FF", // Keep border consistent
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    marginTop: 5,
   },
   coverageOptionButton: {
     borderWidth: 2,

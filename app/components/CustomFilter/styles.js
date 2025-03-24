@@ -8,6 +8,11 @@ const styles = StyleSheet.create({
     //height: 200,
     paddingHorizontal: 20,
     paddingVertical: 10
+    flex: 1,
+    backgroundColor: 'transparent',
+    //height: 200,
+    paddingHorizontal: 20,
+    paddingVertical: 10
   },
 
   // Title text
@@ -35,7 +40,10 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 5,
     backgroundColor: '#7B61FF',
+    backgroundColor: '#7B61FF',
     borderRadius: 20,
+    width: 30,
+    height: 30,
     width: 30,
     height: 30,
     justifyContent: 'center',
@@ -69,6 +77,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   filterText: {
+    color: '#000',
     color: '#000',
     fontSize: 16,
     marginRight: 5,
@@ -109,6 +118,12 @@ const styles = StyleSheet.create({
   modalContent: {
     //flex: 1,
     justifyContent: 'flex-start',
+    //padding: 20,
+    backgroundColor: '#fff',
+  },
+  modalContent: {
+    //flex: 1,
+    justifyContent: 'flex-start',
     padding: 20,
     backgroundColor: '#fff',
     //height: '100%',
@@ -117,8 +132,15 @@ const styles = StyleSheet.create({
     fontSize: 26,
     color: '#000',
     marginBottom: 10,
+    //height: '100%',
+  },
+  modalTitleHeader: {
+    fontSize: 26,
+    color: '#000',
+    marginBottom: 10,
   },
   modalTitle: {
+    fontSize: 24,
     fontSize: 24,
     color: '#000',
   },
@@ -141,6 +163,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    justifyContent: 'space-between',
   },
   colorPickerText: {
     color: '#000',
@@ -150,6 +173,8 @@ const styles = StyleSheet.create({
   colorCircle: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    width: 35,
+    height: 35,
     width: 35,
     height: 35,
     borderRadius: 20,
@@ -167,11 +192,18 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: '#7B61FF',
+    backgroundColor: '#7B61FF',
     padding: 10,
     borderRadius: 5,
     marginTop: 10,
     width: '95%',
+    marginTop: 10,
+    width: '95%',
     alignItems: 'center',
+    alignSelf: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+
     alignSelf: 'center',
     justifyContent: 'center',
     marginBottom: 10,
